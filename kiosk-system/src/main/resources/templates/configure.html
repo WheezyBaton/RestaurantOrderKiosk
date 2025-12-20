@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <meta charset="UTF-8">
+        <title>Konfiguracja Produktu</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body class="bg-light">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-header bg-warning">
+                        <h3 class="mb-0">Skonfiguruj swój posiłek</h3>
+                    </div>
+                    <div class="card-body">
+
+                        <div class="d-flex align-items-center mb-4">
+                            <img th:src="'https://placehold.co/100x100?text=' + ${product.name}" class="rounded me-3">
+                            <div>
+                                <h2 th:text="${product.name}">Burger</h2>
+
+                                <h4 class="text-success">
+                                    <span id="total-price-display"
+                                          th:text="${product.basePrice}"
+                                          th:data-base-price="${product.basePrice}">25.00</span> PLN
+                                </h4>
+
+                                <p class="text-muted" th:text="${product.description}">Opis...</p>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <form th:action="@{/cart/add-custom}" method="post">
+                            <input type="hidden" name="productId" th:value="${product.id}">
+
+                            <h5 class="mb-3">Wybierz składniki:</h5>
+
+                            <div class="list-group mb-4">
+                                <div class="list-group-item d-flex justify-content-between align-items-center"
+                                     th:each="conf : ${product.productIngredients}">
+
+                                    <div>
+                                        <input class="form-check-input me-2 ingredient-checkbox"
+                                               type="checkbox"
+                                               name="selectedIngredientIds"
+                                               th:value="${conf.ingredient.id}"
+                                               th:checked="${conf.isDefault}"
+                                               th:data-extra-price="${!conf.isDefault ? conf.ingredient.price : 0}">
+
+                                        <span class="fw-bold" th:text="${conf.ingredient.name}">Ser</span>
+                                    </div>
+
+                                    <span class="badge bg-secondary rounded-pill"
+                                          th:if="${!conf.isDefault}"
+                                          th:text="'+' + ${conf.ingredient.price} + ' PLN'">+2.00 PLN</span>
+
+                                    <span class="badge bg-success rounded-pill"
+                                          th:if="${conf.isDefault}">W cenie</span>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Ilość:</label>
+                                <input type="number" id="quantity-input" name="quantity" value="1" min="1" max="10" class="form-control w-25">
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <a href="/" class="btn btn-outline-secondary">Anuluj</a>
+                                <button type="submit" class="btn btn-primary btn-lg">Zatwierdź i Dodaj</button>
+                            </div>
+                        </form>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        <script>
+            const basePriceElement = document.getElementById('total-price-display');
+            const checkboxes = document.querySelectorAll('.ingredient-checkbox');
+            const quantityInput = document.getElementById('quantity-input');
+            const basePrice = parseFloat(basePriceElement.getAttribute('data-base-price'));
+
+            function recalculate() {
+                let extraCost = 0;
+                checkboxes.forEach(cb => {
+                    if (cb.checked) {
+                        extraCost += parseFloat(cb.getAttribute('data-extra-price'));
+                    }
+                });
+                const qty = parseInt(quantityInput.value);
+                const total = (basePrice + extraCost) * qty;
+                basePriceElement.innerText = total.toFixed(2);
+            }
+            checkboxes.forEach(cb => {
+                cb.addEventListener('change', recalculate);
+            });
+            quantityInput.addEventListener('input', recalculate);
+            quantityInput.addEventListener('change', recalculate);
+        </script>
+    </body>
+</html>
