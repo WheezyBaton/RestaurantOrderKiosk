@@ -7,6 +7,7 @@ import com.wheezybaton.kiosk_system.repository.CategoryRepository;
 import com.wheezybaton.kiosk_system.repository.IngredientRepository;
 import com.wheezybaton.kiosk_system.repository.ProductIngredientRepository;
 import com.wheezybaton.kiosk_system.repository.ProductRepository;
+import com.wheezybaton.kiosk_system.service.StatsService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -31,10 +32,14 @@ public class AdminController {
     private final CategoryRepository categoryRepo;
     private final IngredientRepository ingredientRepo;
     private final ProductIngredientRepository productIngredientRepo;
+    private final StatsService statsService;
 
     @GetMapping
     public String dashboard(Model model) {
         model.addAttribute("products", productRepo.findAll());
+        model.addAttribute("salesStats", statsService.getSalesStats());
+        model.addAttribute("totalRevenue", statsService.getTotalRevenue());
+        model.addAttribute("todayOrders", statsService.getTodayOrdersCount());
         return "admin/dashboard";
     }
 
