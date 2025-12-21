@@ -43,10 +43,12 @@ public class CartService {
         item.recalculateTotal();
         item.setAddedIngredients(extraIngredients.stream().map(Ingredient::getName).toList());
         item.setRemovedIngredients(removedIngredients.stream().map(Ingredient::getName).toList());
+        item.setAddedIngredientIds(extraIngredients.stream().map(Ingredient::getId).toList());
+        item.setRemovedIngredientIds(removedIngredients.stream().map(Ingredient::getId).toList());
 
         cartSession.addItem(item);
 
-        System.out.println("🛒 Dodano do koszyka: " + item.getProductName() + " | Suma: " + item.getTotalPrice());
+        System.out.println("Dodano do koszyka: " + item.getProductName() + " | Suma: " + item.getTotalPrice());
     }
 
     public void removeFromCart(UUID itemId) {

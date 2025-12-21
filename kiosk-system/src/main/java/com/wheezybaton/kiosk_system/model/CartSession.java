@@ -16,6 +16,7 @@ import java.util.UUID;
 public class CartSession {
 
     private List<CartItemDto> items = new ArrayList<>();
+    private OrderType orderType = OrderType.EAT_IN;
 
     public BigDecimal getTotalCartValue() {
         return items.stream()

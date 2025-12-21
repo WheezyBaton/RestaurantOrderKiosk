@@ -27,6 +27,9 @@ public class CartItemDto {
     private List<String> addedIngredients = new ArrayList<>();
     private List<String> removedIngredients = new ArrayList<>();
 
+    private List<Long> addedIngredientIds = new ArrayList<>();
+    private List<Long> removedIngredientIds = new ArrayList<>();
+
     public void recalculateTotal() {
         if (unitPrice != null) {
             this.totalPrice = unitPrice.multiply(BigDecimal.valueOf(quantity));

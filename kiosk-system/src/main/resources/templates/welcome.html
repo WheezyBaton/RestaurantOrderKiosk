@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <meta charset="UTF-8">
+        <title>Witamy!</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+            .welcome-btn {
+                height: 200px;
+                font-size: 2rem;
+                font-weight: bold;
+                transition: transform 0.2s;
+            }
+            .welcome-btn:hover {
+                transform: scale(1.05);
+            }
+            .bg-kiosk {
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            }
+        </style>
+    </head>
+    <body class="bg-kiosk d-flex align-items-center vh-100">
+        <div class="container text-center">
+            <h1 class="display-3 mb-5 fw-bold text-dark">Wybierz sposób zamówienia</h1>
+            <div class="row justify-content-center g-4">
+                <div class="col-md-5">
+                    <form th:action="@{/select-type}" method="post" class="h-100">
+                        <input type="hidden" name="type" value="EAT_IN">
+                        <button type="submit" class="btn btn-warning w-100 welcome-btn shadow rounded-4 text-dark">
+                            🍽️<br>NA MIEJSCU
+                        </button>
+                    </form>
+                </div>
+                <div class="col-md-5">
+                    <form th:action="@{/select-type}" method="post" class="h-100">
+                        <input type="hidden" name="type" value="TAKE_AWAY">
+                        <button type="submit" class="btn btn-outline-dark w-100 welcome-btn shadow rounded-4 bg-white">
+                            🥡<br>NA WYNOS
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="mt-5 text-muted">
+                <small>Dotknij ekranu, aby rozpocząć</small>
+            </div>
+        </div>
+    </body>
+</html>
