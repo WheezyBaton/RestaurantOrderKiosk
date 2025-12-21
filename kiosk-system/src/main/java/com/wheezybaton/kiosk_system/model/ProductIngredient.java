@@ -2,6 +2,7 @@ package com.wheezybaton.kiosk_system.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.math.BigDecimal;
 
 @Entity
 @Data
@@ -23,4 +24,10 @@ public class ProductIngredient {
 
     private boolean isDefault;
     private int displayOrder;
+    private BigDecimal customPrice;
+    private int maxQuantity = 1;
+
+    public BigDecimal getEffectivePrice() {
+        return customPrice != null ? customPrice : ingredient.getPrice();
+    }
 }

@@ -20,6 +20,11 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        productIngredientRepo.deleteAll();
+        productRepo.deleteAll();
+        ingredientRepo.deleteAll();
+        categoryRepo.deleteAll();
+
         Category burgers = new Category(null, "Burgers", "burger.png", null);
         Category drinks = new Category(null, "Drinks", "drink.png", null);
         categoryRepo.saveAll(List.of(burgers, drinks));
@@ -35,11 +40,11 @@ public class DataInitializer implements CommandLineRunner {
         Product classicBurger = new Product(null, "Classic Burger", new BigDecimal("25.00"), "Classic beef burger with cheese", "classic.jpg", burgers, null);
         productRepo.save(classicBurger);
 
-        ProductIngredient pi1 = new ProductIngredient(null, classicBurger, bun, true, 1);
-        ProductIngredient pi2 = new ProductIngredient(null, classicBurger, meat, true, 2);
-        ProductIngredient pi3 = new ProductIngredient(null, classicBurger, cheese, true, 3);
-        ProductIngredient pi4 = new ProductIngredient(null, classicBurger, onion, true, 4);
-        ProductIngredient pi5 = new ProductIngredient(null, classicBurger, bacon, false, 5);
+        ProductIngredient pi1 = new ProductIngredient(null, classicBurger, bun, true, 1, null, 1);
+        ProductIngredient pi2 = new ProductIngredient(null, classicBurger, meat, true, 2, null, 2);
+        ProductIngredient pi3 = new ProductIngredient(null, classicBurger, cheese, true, 3, null, 2);
+        ProductIngredient pi4 = new ProductIngredient(null, classicBurger, onion, true, 4, null, 1);
+        ProductIngredient pi5 = new ProductIngredient(null, classicBurger, bacon, false, 5, null, 3);
 
         productIngredientRepo.saveAll(List.of(pi1, pi2, pi3, pi4, pi5));
 

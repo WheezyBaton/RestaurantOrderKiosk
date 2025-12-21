@@ -7,6 +7,7 @@ import com.wheezybaton.kiosk_system.service.OrderService;
 import com.wheezybaton.kiosk_system.repository.ProductRepository;
 import com.wheezybaton.kiosk_system.model.Product;
 import com.wheezybaton.kiosk_system.model.ProductIngredient;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -16,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Controller
@@ -56,21 +56,40 @@ public class KioskController {
     @PostMapping("/cart/add-custom")
     public String addCustomProduct(
             @RequestParam Long productId,
-            @RequestParam(required = false) List<Long> selectedIngredientIds,
-            @RequestParam int quantity
+            @RequestParam int quantity,
+            HttpServletRequest request
     ) {
-        if (selectedIngredientIds == null) selectedIngredientIds = Collections.emptyList();
-
         Product product = productRepo.findById(productId).orElseThrow();
+
         List<Long> addedIds = new ArrayList<>();
         List<Long> removedIds = new ArrayList<>();
 
         for (ProductIngredient config : product.getProductIngredients()) {
             Long ingId = config.getIngredient().getId();
-            boolean isSelected = selectedIngredientIds.contains(ingId);
-            if (config.isDefault() && !isSelected) removedIds.add(ingId);
-            if (!config.isDefault() && isSelected) addedIds.add(ingId);
+
+            String paramValue = request.getParameter("qty_" + ingId);
+
+            int selectedQty = 0;
+            if (paramValue != null) {
+                if (paramValue.equals("on")) selectedQty = 1;
+                else try {
+                    selectedQty = Integer.parseInt(paramValue);
+                } catch (NumberFormatException e) {}
+            }
+
+            int defaultQty = config.isDefault() ? 1 : 0;
+            if (selectedQty < defaultQty) {
+                removedIds.add(ingId);
+            }
+
+            if (selectedQty > defaultQty) {
+                int extraCount = selectedQty - defaultQty;
+                for (int i = 0; i < extraCount; i++) {
+                    addedIds.add(ingId);
+                }
+            }
         }
+
         cartService.addToCart(productId, addedIds, removedIds, quantity);
         return "redirect:/menu";
     }

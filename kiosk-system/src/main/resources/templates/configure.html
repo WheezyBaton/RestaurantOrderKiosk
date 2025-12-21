@@ -4,101 +4,231 @@
         <meta charset="UTF-8">
         <title>Konfiguracja Produktu</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+            .qty-input {
+                width: 50px;
+                text-align: center;
+                border: none;
+                background: transparent;
+                font-weight: bold;
+                font-size: 1.1rem;
+            }
+            input[type=number]::-webkit-inner-spin-button,
+            input[type=number]::-webkit-outer-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+            }
+            .stepper-container {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 50rem;
+                padding: 2px 10px;
+            }
+            .btn-stepper {
+                font-size: 1.5rem;
+                line-height: 1;
+                padding: 0 10px;
+                cursor: pointer;
+                user-select: none;
+            }
+            .btn-stepper:hover { opacity: 0.7; }
+            .dynamic-badge {
+                font-size: 0.85rem;
+                font-weight: normal;
+                margin-left: 8px;
+                padding: 4px 8px;
+                border-radius: 12px;
+                transition: all 0.2s;
+            }
+        </style>
     </head>
     <body class="bg-light">
-    <div class="container py-5">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card shadow">
-                    <div class="card-header bg-warning">
-                        <h3 class="mb-0">Skonfiguruj swój posiłek</h3>
-                    </div>
-                    <div class="card-body">
+        <div class="container py-5">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="card shadow border-0">
 
-                        <div class="d-flex align-items-center mb-4">
-                            <img th:src="'https://placehold.co/100x100?text=' + ${product.name}" class="rounded me-3">
-                            <div>
-                                <h2 th:text="${product.name}">Burger</h2>
-
-                                <h4 class="text-success">
-                                    <span id="total-price-display"
-                                          th:text="${product.basePrice}"
-                                          th:data-base-price="${product.basePrice}">25.00</span> PLN
-                                </h4>
-
-                                <p class="text-muted" th:text="${product.description}">Opis...</p>
-                            </div>
-                        </div>
-
-                        <hr>
-
-                        <form th:action="@{/cart/add-custom}" method="post">
-                            <input type="hidden" name="productId" th:value="${product.id}">
-
-                            <h5 class="mb-3">Wybierz składniki:</h5>
-
-                            <div class="list-group mb-4">
-                                <div class="list-group-item d-flex justify-content-between align-items-center"
-                                     th:each="conf : ${product.productIngredients}">
-
-                                    <div>
-                                        <input class="form-check-input me-2 ingredient-checkbox"
-                                               type="checkbox"
-                                               name="selectedIngredientIds"
-                                               th:value="${conf.ingredient.id}"
-                                               th:checked="${conf.isDefault}"
-                                               th:data-extra-price="${!conf.isDefault ? conf.ingredient.price : 0}">
-
-                                        <span class="fw-bold" th:text="${conf.ingredient.name}">Ser</span>
+                        <div class="card-body p-0">
+                            <div class="row g-0">
+                                <div class="col-md-4 bg-white d-flex align-items-center justify-content-center p-3">
+                                    <div style="height: 150px; width: 100%; overflow: hidden;" class="rounded border">
+                                        <img th:if="${product.imageUrl != null and !product.imageUrl.startsWith('http')}"
+                                             th:src="@{'/images/uploads/' + ${product.imageUrl}}"
+                                             class="w-100 h-100 object-fit-cover">
+                                        <img th:if="${product.imageUrl == null or product.imageUrl.startsWith('http')}"
+                                             th:src="'https://placehold.co/400x300?text=' + ${product.name}"
+                                             class="w-100 h-100 object-fit-cover">
                                     </div>
-
-                                    <span class="badge bg-secondary rounded-pill"
-                                          th:if="${!conf.isDefault}"
-                                          th:text="'+' + ${conf.ingredient.price} + ' PLN'">+2.00 PLN</span>
-
-                                    <span class="badge bg-success rounded-pill"
-                                          th:if="${conf.isDefault}">W cenie</span>
+                                </div>
+                                <div class="col-md-8 p-4">
+                                    <h2 th:text="${product.name}" class="mb-1">Burger</h2>
+                                    <p class="text-muted small mb-2" th:text="${product.description}">Opis...</p>
+                                    <h3 class="text-success fw-bold">
+                                        <span id="total-price-display"
+                                              th:data-base-price="${product.basePrice}"
+                                              th:text="${product.basePrice}">25.00</span> PLN
+                                    </h3>
                                 </div>
                             </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Ilość:</label>
-                                <input type="number" id="quantity-input" name="quantity" value="1" min="1" max="10" class="form-control w-25">
-                            </div>
-
-                            <div class="d-flex justify-content-between">
-                                <a th:href="@{/menu}" class="btn btn-outline-secondary">Anuluj</a>
-                                <button type="submit" class="btn btn-primary btn-lg">Zatwierdź i Dodaj</button>
-                            </div>
-                        </form>
-
+                        </div>
+                        <hr class="m-0">
+                        <div class="card-body p-4">
+                            <form th:action="@{/cart/add-custom}" method="post" id="configForm">
+                                <input type="hidden" name="productId" th:value="${product.id}">
+                                <h5 class="mb-3 fw-bold">Składniki:</h5>
+                                <div class="list-group mb-4 shadow-sm">
+                                    <div class="list-group-item p-3 ingredient-row" th:each="conf : ${product.productIngredients}">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="d-flex align-items-center">
+                                                <div class="fw-bold fs-5" th:text="${conf.ingredient.name}">Składnik</div>
+                                                <span class="dynamic-badge"
+                                                      th:data-unit-price="${conf.getEffectivePrice()}">
+                                                      <span th:if="${conf.isDefault}" class="badge bg-success-subtle text-success border border-success-subtle">W cenie</span>
+                                                      <span th:if="${!conf.isDefault}" class="badge bg-warning-subtle text-dark border border-warning-subtle"
+                                                            th:text="'+' + ${conf.getEffectivePrice()} + ' PLN'">+2.00 PLN</span>
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <div th:if="${conf.maxQuantity == 1}">
+                                                    <input class="form-check-input fs-4 ingredient-check"
+                                                           type="checkbox"
+                                                           th:name="'qty_' + ${conf.ingredient.id}"
+                                                           th:checked="${conf.isDefault}"
+                                                           th:data-price="${conf.getEffectivePrice()}"
+                                                           th:data-default="${conf.isDefault ? 1 : 0}">
+                                                </div>
+                                                <div th:if="${conf.maxQuantity > 1}" class="d-flex align-items-center stepper-container stepper-wrapper">
+                                                    <span class="text-danger fw-bold btn-stepper btn-minus">−</span>
+                                                    <input type="number"
+                                                           th:name="'qty_' + ${conf.ingredient.id}"
+                                                           class="qty-input ingredient-stepper"
+                                                           th:value="${conf.isDefault ? 1 : 0}"
+                                                           min="0"
+                                                           th:max="${conf.maxQuantity}"
+                                                           readonly
+                                                           th:data-price="${conf.getEffectivePrice()}"
+                                                           th:data-default="${conf.isDefault ? 1 : 0}">
+                                                    <span class="text-success fw-bold btn-stepper btn-plus">+</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-end align-items-center mb-4 bg-white p-3 rounded border">
+                                    <span class="me-3 fw-bold fs-5">Liczba zestawów:</span>
+                                    <div class="stepper-container d-flex align-items-center">
+                                        <span class="text-danger fw-bold btn-stepper" id="main-minus">−</span>
+                                        <input type="number" id="main-quantity" name="quantity" value="1" min="1" max="10" class="qty-input">
+                                        <span class="text-success fw-bold btn-stepper" id="main-plus">+</span>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-3">
+                                    <a th:href="@{/menu}" class="btn btn-outline-secondary btn-lg w-50">Anuluj</a>
+                                    <button type="submit" class="btn btn-success btn-lg w-50 fw-bold">
+                                        DODAJ <span id="btn-price-display">25.00</span> PLN
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
         <script>
-            const basePriceElement = document.getElementById('total-price-display');
-            const checkboxes = document.querySelectorAll('.ingredient-checkbox');
-            const quantityInput = document.getElementById('quantity-input');
-            const basePrice = parseFloat(basePriceElement.getAttribute('data-base-price'));
+            document.addEventListener('DOMContentLoaded', function () {
+                const basePriceElement = document.getElementById('total-price-display');
+                const btnPriceElement = document.getElementById('btn-price-display');
+                const mainQtyInput = document.getElementById('main-quantity');
 
-            function recalculate() {
-                let extraCost = 0;
-                checkboxes.forEach(cb => {
-                    if (cb.checked) {
-                        extraCost += parseFloat(cb.getAttribute('data-extra-price'));
-                    }
+                let basePrice = 0.0;
+                if(basePriceElement) {
+                    basePrice = parseFloat(basePriceElement.getAttribute('data-base-price')) || 0;
+                }
+                function updatePrice() {
+                    let totalExtraCost = 0;
+                    document.querySelectorAll('.ingredient-row').forEach(row => {
+                        const checkbox = row.querySelector('.ingredient-check');
+                        const stepper = row.querySelector('.ingredient-stepper');
+                        const badge = row.querySelector('.dynamic-badge');
+
+                        let currentQty = 0;
+                        let defaultQty = 0;
+                        let unitPrice = 0.0;
+
+                        if (checkbox) {
+                            unitPrice = parseFloat(checkbox.getAttribute('data-price')) || 0;
+                            defaultQty = parseInt(checkbox.getAttribute('data-default')) || 0;
+                            currentQty = checkbox.checked ? 1 : 0;
+                        } else if (stepper) {
+                            unitPrice = parseFloat(stepper.getAttribute('data-price')) || 0;
+                            defaultQty = parseInt(stepper.getAttribute('data-default')) || 0;
+                            currentQty = parseInt(stepper.value) || 0;
+                        }
+                        const payableQty = Math.max(0, currentQty - defaultQty);
+                        const rowCost = payableQty * unitPrice;
+                        totalExtraCost += rowCost;
+                        if (badge) {
+                            // Reset klas CSS
+                            badge.className = 'dynamic-badge badge';
+                            if (rowCost > 0) {
+                                badge.innerText = '+' + rowCost.toFixed(2) + ' PLN';
+                                badge.classList.add('bg-warning-subtle', 'text-dark', 'border', 'border-warning-subtle');
+                            } else if (currentQty === defaultQty && defaultQty > 0) {
+                                badge.innerText = 'W cenie';
+                                badge.classList.add('bg-success-subtle', 'text-success', 'border', 'border-success-subtle');
+                            } else if (currentQty < defaultQty) {
+                                badge.innerText = 'Usunięto';
+                                badge.classList.add('bg-danger-subtle', 'text-danger', 'border', 'border-danger-subtle');
+                            } else {
+                                badge.innerText = '';
+                                badge.className = 'dynamic-badge';
+                            }
+                        }
+                    });
+                    const mainQty = parseInt(mainQtyInput.value) || 1;
+                    const unitPrice = basePrice + totalExtraCost;
+                    const total = unitPrice * mainQty;
+                    const formattedTotal = total.toFixed(2);
+                    if(basePriceElement) basePriceElement.innerText = formattedTotal;
+                    if(btnPriceElement) btnPriceElement.innerText = formattedTotal;
+                }
+                document.querySelectorAll('.btn-plus').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const wrapper = this.closest('.stepper-wrapper');
+                        const input = wrapper.querySelector('input');
+                        const max = parseInt(input.getAttribute('max')) || 10;
+                        let val = parseInt(input.value) || 0;
+                        if (val < max) {
+                            input.value = val + 1;
+                            updatePrice();
+                        }
+                    });
                 });
-                const qty = parseInt(quantityInput.value);
-                const total = (basePrice + extraCost) * qty;
-                basePriceElement.innerText = total.toFixed(2);
-            }
-            checkboxes.forEach(cb => {
-                cb.addEventListener('change', recalculate);
+                document.querySelectorAll('.btn-minus').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const wrapper = this.closest('.stepper-wrapper');
+                        const input = wrapper.querySelector('input');
+                        let val = parseInt(input.value) || 0;
+                        if (val > 0) {
+                            input.value = val - 1;
+                            updatePrice();
+                        }
+                    });
+                });
+                document.querySelectorAll('.ingredient-check').forEach(el => {
+                    el.addEventListener('change', updatePrice);
+                });
+                document.getElementById('main-plus').addEventListener('click', function() {
+                    let val = parseInt(mainQtyInput.value) || 1;
+                    if(val < 10) { mainQtyInput.value = val + 1; updatePrice(); }
+                });
+                document.getElementById('main-minus').addEventListener('click', function() {
+                    let val = parseInt(mainQtyInput.value) || 1;
+                    if(val > 1) { mainQtyInput.value = val - 1; updatePrice(); }
+                });
+                mainQtyInput.addEventListener('change', updatePrice);
+                updatePrice();
             });
-            quantityInput.addEventListener('input', recalculate);
-            quantityInput.addEventListener('change', recalculate);
         </script>
     </body>
 </html>

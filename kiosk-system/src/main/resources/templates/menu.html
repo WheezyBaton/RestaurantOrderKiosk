@@ -48,7 +48,19 @@
             <div class="row row-cols-1 row-cols-md-3 g-4">
                 <div class="col" th:each="product : ${products}">
                     <div class="card h-100 product-card shadow-sm">
-                        <img th:src="'https://placehold.co/600x400?text=' + ${product.name}" class="card-img-top" alt="...">
+                        <div style="height: 200px; overflow: hidden;">
+                            <img th:if="${product.imageUrl != null and !product.imageUrl.startsWith('http')}"
+                                 th:src="@{'/images/uploads/' + ${product.imageUrl}}"
+                                 class="card-img-top h-100 object-fit-cover" alt="Product Image">
+
+                            <img th:if="${product.imageUrl != null and product.imageUrl.startsWith('http')}"
+                                 th:src="${product.imageUrl}"
+                                 class="card-img-top h-100 object-fit-cover" alt="Product Image">
+
+                            <img th:if="${product.imageUrl == null}"
+                                 th:src="'https://placehold.co/600x400?text=' + ${product.name}"
+                                 class="card-img-top h-100 object-fit-cover" alt="Placeholder">
+                        </div>
                         <div class="card-body d-flex flex-column">
                             <h5 class="card-title" th:text="${product.name}">Nazwa Produktu</h5>
                             <p class="card-text text-muted" th:text="${product.description}">Opis produktu...</p>
@@ -63,5 +75,10 @@
                 </div>
             </div>
         </div>
+        <footer class="mt-5 text-center text-muted p-3">
+            <small>&copy; 2025 Kiosk System</small>
+            <br>
+            <a href="/admin" class="text-decoration-none small text-secondary">Panel Managera</a>
+        </footer>
     </body>
 </html>
