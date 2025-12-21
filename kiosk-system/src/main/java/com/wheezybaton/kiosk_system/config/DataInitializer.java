@@ -37,7 +37,16 @@ public class DataInitializer implements CommandLineRunner {
 
         ingredientRepo.saveAll(List.of(bun, meat, cheese, onion, bacon));
 
-        Product classicBurger = new Product(null, "Classic Burger", new BigDecimal("25.00"), "Classic beef burger with cheese", "classic.jpg", burgers, null);
+        Product classicBurger = new Product(
+                null,
+                "Classic Burger",
+                new BigDecimal("25.00"),
+                "Classic beef burger with cheese",
+                "classic.jpg",
+                burgers,
+                null,
+                false
+        );
         productRepo.save(classicBurger);
 
         ProductIngredient pi1 = new ProductIngredient(null, classicBurger, bun, true, 1, null, 1);

@@ -26,4 +26,6 @@ public class Product {
 
     @OneToMany(mappedBy = "product")
     private List<ProductIngredient> productIngredients;
+
+    private boolean deleted = false;
 }

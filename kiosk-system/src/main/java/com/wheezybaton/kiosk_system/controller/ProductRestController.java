@@ -36,7 +36,7 @@ public class ProductRestController {
     @GetMapping
     @Operation(summary = "Pobierz listę produktów", description = "Zwraca produkty wraz z ich możliwymi dodatkami.")
     public ResponseEntity<List<ProductDto>> getAllProducts() {
-        List<Product> products = productRepo.findAll();
+        List<Product> products = productRepo.findByDeletedFalse();
         List<ProductDto> dtos = products.stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());

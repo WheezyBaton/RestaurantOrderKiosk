@@ -118,7 +118,9 @@ public class AdminController {
 
     @GetMapping("/products/delete/{id}")
     public String deleteProduct(@PathVariable Long id) {
-        productRepo.deleteById(id);
+        Product product = productRepo.findById(id).orElseThrow();
+        product.setDeleted(true);
+        productRepo.save(product);
         return "redirect:/admin";
     }
 }

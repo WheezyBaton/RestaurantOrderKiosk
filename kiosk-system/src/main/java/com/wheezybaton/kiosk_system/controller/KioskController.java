@@ -40,7 +40,7 @@ public class KioskController {
 
     @GetMapping("/menu")
     public String showMenu(Model model) {
-        model.addAttribute("products", productRepo.findAll());
+        model.addAttribute("products", productRepo.findByDeletedFalse());
         model.addAttribute("cart", cartService.getSession());
         return "menu";
     }
