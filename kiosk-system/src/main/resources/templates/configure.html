@@ -168,7 +168,6 @@
                         const rowCost = payableQty * unitPrice;
                         totalExtraCost += rowCost;
                         if (badge) {
-                            // Reset klas CSS
                             badge.className = 'dynamic-badge badge';
                             if (rowCost > 0) {
                                 badge.innerText = '+' + rowCost.toFixed(2) + ' PLN';

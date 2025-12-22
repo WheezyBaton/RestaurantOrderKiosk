@@ -52,8 +52,8 @@ public class DataInitializer implements CommandLineRunner {
         Ingredient spicySauce = saveIng("Sos Ostry", "1.00");
         Ingredient mayo = saveIng("Majonez", "0.00");
         Ingredient ketchup = saveIng("Ketchup", "0.00");
-        Ingredient friesIng = saveIng("Ziemniaki", "0.00"); // Składnik techniczny
-        Ingredient colaIng = saveIng("Syrop Cola", "0.00"); // Składnik techniczny
+        Ingredient friesIng = saveIng("Ziemniaki", "0.00");
+        Ingredient colaIng = saveIng("Syrop Cola", "0.00");
 
         Product p1 = saveProduct("Classic Burger", "25.00", "Klasyczna wołowina z warzywami", "classic.jpg", catBurgers);
         saveConfig(p1, bun, true, 1);
