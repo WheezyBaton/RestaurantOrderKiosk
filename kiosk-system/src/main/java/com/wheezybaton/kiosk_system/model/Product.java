@@ -29,6 +29,8 @@ public class Product {
     private String description;
     private String imageUrl;
 
+    private boolean available = true;
+
     @ManyToOne
     @JoinColumn(name = "category_id")
     @ToString.Exclude

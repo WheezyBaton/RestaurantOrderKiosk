@@ -21,7 +21,7 @@ class ProductRepositoryTest {
 
     @Test
     void shouldSaveAndFindProduct() {
-        Product product = new Product(null, "Test Burger", new BigDecimal("10.00"), "Desc", "img.jpg", null, null, false);
+        Product product = new Product(null, "Test Burger", new BigDecimal("10.00"), "Desc", "img.jpg", true, null, null, false);
         Product saved = productRepo.save(product);
 
         Optional<Product> found = productRepo.findById(saved.getId());
@@ -32,8 +32,8 @@ class ProductRepositoryTest {
 
     @Test
     void findByDeletedFalse_ShouldReturnOnlyActiveProducts() {
-        Product active = new Product(null, "Active", new BigDecimal("10"), "", "", null, null, false);
-        Product deleted = new Product(null, "Deleted", new BigDecimal("10"), "", "", null, null, true); // deleted=true
+        Product active = new Product(null, "Active", new BigDecimal("10"), "", "", true, null, null, false);
+        Product deleted = new Product(null, "Deleted", new BigDecimal("10"), "", "", true, null, null, true);
         productRepo.saveAll(List.of(active, deleted));
 
         List<Product> result = productRepo.findByDeletedFalse();
@@ -45,7 +45,7 @@ class ProductRepositoryTest {
     @Test
     void findByDeletedFalse_Pagination_ShouldReturnPage() {
         for (int i = 0; i < 5; i++) {
-            productRepo.save(new Product(null, "Burger " + i, new BigDecimal("10"), "", "", null, null, false));
+            productRepo.save(new Product(null, "Burger " + i, new BigDecimal("10"), "", "", true, null, null, false));
         }
 
         Page<Product> page = productRepo.findByDeletedFalse(PageRequest.of(0, 2));

@@ -84,37 +84,45 @@
                 <div class="card-body p-0">
                     <table class="table table-striped table-hover mb-0">
                         <thead class="table-dark">
-                        <tr>
-                            <th>ID</th>
-                            <th>Zdjęcie</th>
-                            <th>Nazwa</th>
-                            <th>Kategoria</th>
-                            <th>Cena</th>
-                            <th>Akcje</th> </tr>
+                            <tr>
+                                <th>ID</th>
+                                <th>Zdjęcie</th>
+                                <th>Nazwa</th>
+                                <th>Kategoria</th>
+                                <th>Cena</th>
+                                <th>Status</th> <th>Akcje</th>
+                            </tr>
                         </thead>
                         <tbody>
-                        <tr th:each="p : ${products}">
-                            <td th:text="${p.id}">1</td>
-                            <td>
-                                <img th:if="${p.imageUrl != null and !p.imageUrl.startsWith('http')}"
-                                     th:src="@{'/images/uploads/' + ${p.imageUrl}}" width="50" height="50" class="object-fit-cover rounded">
-
-                                <img th:if="${p.imageUrl != null and p.imageUrl.startsWith('http')}"
-                                     th:src="${p.imageUrl}" width="50" height="50" class="object-fit-cover rounded">
-                            </td>
-                            <td th:text="${p.name}">Burger</td>
-                            <td th:text="${p.category?.name}">Kategoria</td>
-                            <td th:text="${p.basePrice} + ' PLN'">20.00</td>
-
-                            <td>
-                                <a th:href="@{'/admin/products/edit/' + ${p.id}}"
-                                   class="btn btn-sm btn-primary me-1">Edytuj</a>
-
-                                <a th:href="@{'/admin/products/delete/' + ${p.id}}"
-                                   class="btn btn-sm btn-danger"
-                                   onclick="return confirm('Czy na pewno usunąć?')">Usuń</a>
-                            </td>
-                        </tr>
+                            <tr th:each="p : ${products}">
+                                <td th:text="${p.id}">1</td>
+                                <td>
+                                </td>
+                                <td th:text="${p.name}">Burger</td>
+                                <td th:text="${p.category?.name}">Kategoria</td>
+                                <td th:text="${p.basePrice} + ' PLN'">20.00</td>
+                                <td>
+                                    <div th:if="${p.available}" class="text-success fw-bold">
+                                        <span class="badge bg-success">Widoczny</span>
+                                    </div>
+                                    <div th:if="${!p.available}" class="text-secondary fw-bold">
+                                        <span class="badge bg-secondary">Ukryty</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <a th:href="@{'/admin/products/toggle/' + ${p.id}}"
+                                       class="btn btn-sm me-1"
+                                       th:classappend="${p.available} ? 'btn-outline-secondary' : 'btn-outline-success'"
+                                       th:text="${p.available} ? 'Ukryj' : 'Pokaż'">
+                                        Ukryj
+                                    </a>
+                                    <a th:href="@{'/admin/products/edit/' + ${p.id}}"
+                                       class="btn btn-sm btn-primary me-1">Edytuj</a>
+                                    <a th:href="@{'/admin/products/delete/' + ${p.id}}"
+                                       class="btn btn-sm btn-danger"
+                                       onclick="return confirm('Czy na pewno usunąć?')">Usuń</a>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>

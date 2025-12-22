@@ -30,6 +30,20 @@ public class ProductService {
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
     }
 
+    public List<Product> getAvailableProducts() {
+        return productRepository.findByDeletedFalseAndAvailableTrue();
+    }
+
+    public List<Product> getAllActiveProducts() {
+        return productRepository.findByDeletedFalse();
+    }
+
+    public void toggleProductAvailability(Long id) {
+        Product product = getProductById(id);
+        product.setAvailable(!product.isAvailable());
+        productRepository.save(product);
+    }
+
     public void deleteProduct(Long id) {
         Product product = getProductById(id);
         product.setDeleted(true);
@@ -39,6 +53,7 @@ public class ProductService {
     public Product createProduct(CreateProductRequest request) {
         Product product = new Product();
         updateProductFromRequest(product, request);
+        product.setAvailable(true);
         Product savedProduct = productRepository.save(product);
 
         saveIngredients(savedProduct, request.getIngredients());
@@ -53,6 +68,7 @@ public class ProductService {
 
         if (product.getProductIngredients() != null) {
             productIngredientRepository.deleteAll(product.getProductIngredients());
+            productIngredientRepository.flush();
         }
         saveIngredients(savedProduct, request.getIngredients());
 

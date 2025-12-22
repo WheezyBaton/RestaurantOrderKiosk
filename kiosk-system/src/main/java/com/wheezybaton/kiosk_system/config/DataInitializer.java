@@ -104,12 +104,24 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private Product saveProduct(String name, String price, String desc, String img, Category cat) {
-        Product p = new Product(null, name, new BigDecimal(price), desc, img, cat, null, false);
+        Product p = new Product();
+        p.setName(name);
+        p.setBasePrice(new BigDecimal(price));
+        p.setDescription(desc);
+        p.setImageUrl(img);
+        p.setCategory(cat);
+        p.setAvailable(true);
+        p.setDeleted(false);
         return productRepo.save(p);
     }
 
     private void saveConfig(Product p, Ingredient i, boolean isDefault, int maxQty) {
-        ProductIngredient pi = new ProductIngredient(null, p, i, isDefault, 1, null, maxQty);
+        ProductIngredient pi = new ProductIngredient();
+        pi.setProduct(p);
+        pi.setIngredient(i);
+        pi.setDefault(isDefault);
+        pi.setDisplayOrder(1);
+        pi.setMaxQuantity(maxQty);
         productIngredientRepo.save(pi);
     }
 
@@ -120,7 +132,12 @@ public class DataInitializer implements CommandLineRunner {
         for (int i = 1; i <= ordersCount; i++) {
             Order order = new Order();
             order.setDailyNumber(i);
-            order.setStatus(rand.nextInt(10) > 1 ? OrderStatus.COMPLETED : OrderStatus.CANCELLED);
+
+            int statusRoll = rand.nextInt(10);
+            if (statusRoll < 6) order.setStatus(OrderStatus.COMPLETED);
+            else if (statusRoll < 8) order.setStatus(OrderStatus.READY);
+            else order.setStatus(OrderStatus.NEW);
+
             order.setType(rand.nextBoolean() ? OrderType.EAT_IN : OrderType.TAKE_AWAY);
             order.setCreatedAt(LocalDateTime.now().minusMinutes(rand.nextInt(480)));
 
@@ -145,7 +162,12 @@ public class DataInitializer implements CommandLineRunner {
                     mod.setOrderItem(item);
                     mod.setIngredient(extra);
                     mod.setAction(ModifierAction.ADDED);
+
+                    if (item.getModifiers() == null) {
+                        item.setModifiers(new ArrayList<>());
+                    }
                     item.getModifiers().add(mod);
+
                     itemPrice = itemPrice.add(extra.getPrice());
                 }
                 item.setPriceAtPurchase(itemPrice);

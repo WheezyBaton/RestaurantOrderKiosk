@@ -7,6 +7,7 @@ import com.wheezybaton.kiosk_system.repository.CategoryRepository;
 import com.wheezybaton.kiosk_system.repository.IngredientRepository;
 import com.wheezybaton.kiosk_system.repository.ProductIngredientRepository;
 import com.wheezybaton.kiosk_system.repository.ProductRepository;
+import com.wheezybaton.kiosk_system.service.ProductService;
 import com.wheezybaton.kiosk_system.service.StatsService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ import java.util.stream.Collectors;
 public class AdminController {
 
     private final ProductRepository productRepo;
+    private final ProductService productService;
     private final CategoryRepository categoryRepo;
     private final IngredientRepository ingredientRepo;
     private final ProductIngredientRepository productIngredientRepo;
@@ -46,11 +48,17 @@ public class AdminController {
 
     @GetMapping
     public String dashboard(Model model) {
-        model.addAttribute("products", productRepo.findAll());
+        model.addAttribute("products", productRepo.findByDeletedFalse());
         model.addAttribute("salesStats", statsService.getSalesStats());
         model.addAttribute("totalRevenue", statsService.getTotalRevenue());
         model.addAttribute("todayOrders", statsService.getTodayOrdersCount());
         return "admin/dashboard";
+    }
+
+    @GetMapping("/products/toggle/{id}")
+    public String toggleAvailability(@PathVariable Long id) {
+        productService.toggleProductAvailability(id);
+        return "redirect:/admin";
     }
 
     @GetMapping("/products/add")
@@ -71,6 +79,7 @@ public class AdminController {
             @RequestParam Long categoryId,
             @RequestParam(required = false) List<Long> ingredientIds,
             @RequestParam(required = false) List<Long> defaultIngredientIds,
+            @RequestParam(value = "isAvailable", defaultValue = "false") boolean isAvailable,
             HttpServletRequest request,
             Model model
     ) throws IOException {
@@ -80,6 +89,7 @@ public class AdminController {
             model.addAttribute("activeIngredients", new HashMap<Long, ProductIngredient>());
             return "admin/product-form";
         }
+        product.setAvailable(isAvailable);
         Category category = categoryRepo.findById(categoryId).orElseThrow();
         product.setCategory(category);
 

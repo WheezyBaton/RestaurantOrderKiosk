@@ -47,7 +47,7 @@ class ProductRestControllerTest {
     @Test
     @WithMockUser
     void getAllProducts_ShouldReturnPage() throws Exception {
-        Product p = new Product(1L, "Test Burger", new BigDecimal("20.00"), "Desc", "img.png", null, null, false);
+        Product p = new Product(1L, "Test Burger", new BigDecimal("20.00"), "Desc", "img.png", true, null, null, false);
         Page<Product> page = new PageImpl<>(List.of(p));
         when(productRepo.findByDeletedFalse(any(Pageable.class))).thenReturn(page);
 
@@ -73,7 +73,7 @@ class ProductRestControllerTest {
         req.setBasePrice(BigDecimal.TEN);
         req.setCategoryId(1L);
 
-        Product created = new Product(55L, "Service Burger", BigDecimal.TEN, null, null, null, null, false);
+        Product created = new Product(55L, "Service Burger", BigDecimal.TEN, null, null, true, null, null, false);
 
         when(productService.createProduct(any(CreateProductRequest.class))).thenReturn(created);
 

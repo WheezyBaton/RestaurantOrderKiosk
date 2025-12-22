@@ -1,14 +1,15 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="pl" xmlns:th="http://www.thymeleaf.org">
     <head>
         <meta charset="UTF-8">
         <title>Edycja Produktu</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     </head>
     <body class="bg-light">
         <div class="container py-5">
             <div class="row justify-content-center">
-                <div class="col-md-6">
+                <div class="col-md-8">
                     <div class="card shadow">
                         <div class="card-header bg-primary text-white">
                             <h4 class="mb-0">Dodaj / Edytuj Produkt</h4>
@@ -17,7 +18,7 @@
                             <form th:action="@{/admin/products/save}" method="post" enctype="multipart/form-data" th:object="${product}">
                                 <input type="hidden" th:field="*{id}">
                                 <div class="mb-3">
-                                    <label>Nazwa</label>
+                                    <label class="form-label fw-bold">Nazwa</label>
                                     <input type="text" th:field="*{name}" class="form-control"
                                            th:classappend="${#fields.hasErrors('name')} ? 'is-invalid'" required>
                                     <div class="invalid-feedback" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">
@@ -25,12 +26,12 @@
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    <label>Opis</label>
+                                    <label class="form-label">Opis</label>
                                     <textarea th:field="*{description}" class="form-control" rows="2"></textarea>
                                 </div>
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label>Cena (PLN)</label>
+                                        <label class="form-label fw-bold">Cena (PLN)</label>
                                         <input type="number" step="0.01" th:field="*{basePrice}" class="form-control"
                                                th:classappend="${#fields.hasErrors('basePrice')} ? 'is-invalid'" required>
                                         <div class="invalid-feedback" th:if="${#fields.hasErrors('basePrice')}" th:errors="*{basePrice}">
@@ -38,7 +39,7 @@
                                         </div>
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label>Kategoria</label>
+                                        <label class="form-label fw-bold">Kategoria</label>
                                         <select name="categoryId" class="form-select">
                                             <option th:each="cat : ${categories}"
                                                     th:value="${cat.id}"
@@ -47,46 +48,53 @@
                                         </select>
                                     </div>
                                 </div>
+                                <div class="mb-3 form-check form-switch p-3 bg-light rounded border">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="availableSwitch"
+                                           th:field="*{available}">
+                                    <label class="form-check-label fw-bold" for="availableSwitch">
+                                        Produkt dostępny w menu kiosku
+                                    </label>
+                                    <div class="form-text mt-0">Odznacz, jeśli produkt się skończył lub jest tymczasowo niedostępny.</div>
+                                </div>
                                 <hr class="my-4">
                                 <h5 class="mb-3">Składniki i Personalizacja</h5>
-                                <div class="card p-3 bg-white">
+                                <div class="card p-3 bg-white border">
                                     <div class="table-responsive">
-                                        <table class="table table-sm align-middle">
-                                            <thead>
-                                            <tr>
-                                                <th style="width: 5%">Włącz</th>
-                                                <th style="width: 25%">Nazwa (Cena bazowa)</th>
-                                                <th style="width: 5%">Standard?</th>
-                                                <th style="width: 20%">Nowa Cena (Opcjonalnie)</th>
-                                                <th style="width: 15%">Max Ilość</th>
-                                            </tr>
+                                        <table class="table table-sm align-middle mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th style="width: 10%" class="text-center">Włącz</th>
+                                                    <th style="width: 30%">Nazwa (Cena bazowa)</th>
+                                                    <th style="width: 10%" class="text-center">Domyślny?</th>
+                                                    <th style="width: 30%">Nowa Cena (Opcjonalnie)</th>
+                                                    <th style="width: 20%">Max Ilość</th>
+                                                </tr>
                                             </thead>
                                             <tbody>
                                             <tr th:each="ing : ${allIngredients}"
                                                 th:with="config=${activeIngredients != null ? activeIngredients.get(ing.id) : null}">
-
-                                                <td>
+                                                <td class="text-center">
                                                     <input class="form-check-input" type="checkbox"
                                                            name="ingredientIds"
                                                            th:value="${ing.id}"
                                                            th:checked="${config != null}">
                                                 </td>
-
-                                                <td th:text="${ing.name} + ' (' + ${ing.price} + ' zł)'">Ser</td>
-
-                                                <td>
+                                                <td th:text="${ing.name} + ' (' + ${ing.price} + ' zł)'">Ser (2.00 zł)</td>
+                                                <td class="text-center">
                                                     <input class="form-check-input" type="checkbox"
                                                            name="defaultIngredientIds"
                                                            th:value="${ing.id}"
                                                            th:checked="${config != null and config.default}">
                                                 </td>
-
                                                 <td>
-                                                    <input type="number" step="0.01"
-                                                           th:name="'customPrice_' + ${ing.id}"
-                                                           class="form-control form-control-sm"
-                                                           placeholder="Domyślna"
-                                                           th:value="${config != null ? config.customPrice : ''}">
+                                                    <div class="input-group input-group-sm">
+                                                        <input type="number" step="0.01"
+                                                               th:name="'customPrice_' + ${ing.id}"
+                                                               class="form-control"
+                                                               placeholder="Domyślna"
+                                                               th:value="${config != null ? config.customPrice : ''}">
+                                                        <span class="input-group-text">PLN</span>
+                                                    </div>
                                                 </td>
 
                                                 <td>
@@ -99,28 +107,32 @@
                                             </tbody>
                                         </table>
                                     </div>
-                                    <div class="alert alert-info small mt-2">
-                                        <i class="bi bi-info-circle"></i>
-                                        "Nowa Cena" nadpisuje cenę globalną. "Max Ilość" określa, ile razy klient może dodać ten dodatek (np. 3x Bekon).
+                                    <div class="alert alert-info small mt-3 mb-0">
+                                        <i class="bi bi-info-circle-fill"></i>
+                                        <strong>Info:</strong> "Nowa Cena" nadpisuje cenę globalną składnika tylko dla tego produktu. "Max Ilość" określa, ile razy klient może dodać ten dodatek (np. potrójny bekon).
                                     </div>
                                 </div>
                                 <hr class="my-4">
-                                <div class="mb-3">
-                                    <label>Zdjęcie</label>
-                                    <div th:if="${product.imageUrl != null}" class="mb-2">
-                                        <img th:if="${!product.imageUrl.startsWith('http')}"
-                                             th:src="@{'/images/uploads/' + ${product.imageUrl}}"
-                                             style="height: 100px; border-radius: 5px;">
-                                        <img th:if="${product.imageUrl.startsWith('http')}"
-                                             th:src="${product.imageUrl}"
-                                             style="height: 100px; border-radius: 5px;">
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Zdjęcie produktu</label>
+                                    <div class="row align-items-center">
+                                        <div class="col-auto" th:if="${product.imageUrl != null}">
+                                            <img th:if="${!product.imageUrl.startsWith('http')}"
+                                                 th:src="@{'/images/uploads/' + ${product.imageUrl}}"
+                                                 class="img-thumbnail" style="height: 80px; width: 80px; object-fit: cover;">
+                                            <img th:if="${product.imageUrl.startsWith('http')}"
+                                                 th:src="${product.imageUrl}"
+                                                 class="img-thumbnail" style="height: 80px; width: 80px; object-fit: cover;">
+                                        </div>
+                                        <div class="col">
+                                            <input type="file" name="imageFile" class="form-control" accept="image/*">
+                                            <div class="form-text">Pozostaw puste, aby zachować obecne zdjęcie.</div>
+                                        </div>
                                     </div>
-                                    <input type="file" name="imageFile" class="form-control" accept="image/*">
-                                    <small class="text-muted">Pozostaw puste, aby zachować obecne.</small>
                                 </div>
                                 <div class="d-flex justify-content-between">
-                                    <a href="/admin" class="btn btn-secondary">Anuluj</a>
-                                    <button type="submit" class="btn btn-success">Zapisz Produkt</button>
+                                    <a href="/admin" class="btn btn-outline-secondary px-4">Anuluj</a>
+                                    <button type="submit" class="btn btn-success px-4">Zapisz Produkt</button>
                                 </div>
                             </form>
                         </div>
