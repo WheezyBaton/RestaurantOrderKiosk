@@ -3,6 +3,7 @@ package com.wheezybaton.kiosk_system.controller;
 import com.wheezybaton.kiosk_system.dto.CreateProductRequest;
 import com.wheezybaton.kiosk_system.dto.ProductDto;
 import com.wheezybaton.kiosk_system.dto.ProductIngredientDto;
+import com.wheezybaton.kiosk_system.exception.ResourceNotFoundException;
 import com.wheezybaton.kiosk_system.model.Category;
 import com.wheezybaton.kiosk_system.model.Ingredient;
 import com.wheezybaton.kiosk_system.model.Product;
@@ -50,7 +51,7 @@ public class ProductRestController {
         return productRepo.findById(id)
                 .map(this::mapToDto)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseThrow(() -> new ResourceNotFoundException("Produkt o ID " + id + " nie istnieje"));
     }
 
     @PostMapping
@@ -65,7 +66,7 @@ public class ProductRestController {
         product.setImageUrl(request.getImageUrl() != null ? request.getImageUrl() : "placeholder.png");
 
         Category category = categoryRepo.findById(request.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Category not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Kategoria o ID " + request.getCategoryId() + " nie istnieje"));
         product.setCategory(category);
 
         Product savedProduct = productRepo.save(product);
@@ -76,7 +77,7 @@ public class ProductRestController {
 
             for (CreateProductRequest.IngredientConfig configDto : request.getIngredients()) {
                 Ingredient ingredient = ingredientRepo.findById(configDto.getIngredientId())
-                        .orElseThrow(() -> new RuntimeException("Ingredient not found ID: " + configDto.getIngredientId()));
+                        .orElseThrow(() -> new ResourceNotFoundException("Składnik o ID " + configDto.getIngredientId() + " nie istnieje"));
 
                 ProductIngredient pi = new ProductIngredient();
                 pi.setProduct(savedProduct);
