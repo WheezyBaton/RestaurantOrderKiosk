@@ -2,7 +2,6 @@ package com.wheezybaton.kiosk_system.service;
 
 import com.wheezybaton.kiosk_system.dto.CartItemDto;
 import com.wheezybaton.kiosk_system.model.*;
-import com.wheezybaton.kiosk_system.repository.IngredientRepository;
 import com.wheezybaton.kiosk_system.repository.OrderRepository;
 import com.wheezybaton.kiosk_system.repository.ProductRepository;
 import org.junit.jupiter.api.Test;
@@ -26,8 +25,6 @@ class OrderServiceTest {
     private OrderRepository orderRepo;
     @Mock
     private ProductRepository productRepo;
-    @Mock
-    private IngredientRepository ingredientRepo;
     @Mock
     private CartSession cartSession;
 

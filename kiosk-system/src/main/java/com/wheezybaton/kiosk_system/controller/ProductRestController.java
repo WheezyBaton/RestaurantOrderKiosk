@@ -4,14 +4,9 @@ import com.wheezybaton.kiosk_system.dto.CreateProductRequest;
 import com.wheezybaton.kiosk_system.dto.ProductDto;
 import com.wheezybaton.kiosk_system.dto.ProductIngredientDto;
 import com.wheezybaton.kiosk_system.exception.ResourceNotFoundException;
-import com.wheezybaton.kiosk_system.model.Category;
-import com.wheezybaton.kiosk_system.model.Ingredient;
 import com.wheezybaton.kiosk_system.model.Product;
-import com.wheezybaton.kiosk_system.model.ProductIngredient;
-import com.wheezybaton.kiosk_system.repository.CategoryRepository;
-import com.wheezybaton.kiosk_system.repository.IngredientRepository;
-import com.wheezybaton.kiosk_system.repository.ProductIngredientRepository;
 import com.wheezybaton.kiosk_system.repository.ProductRepository;
+import com.wheezybaton.kiosk_system.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -19,10 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,20 +26,17 @@ import java.util.stream.Collectors;
 public class ProductRestController {
 
     private final ProductRepository productRepo;
-    private final CategoryRepository categoryRepo;
-    private final IngredientRepository ingredientRepo;
-    private final ProductIngredientRepository productIngredientRepo;
+    private final ProductService productService;
 
     @GetMapping
-    @Operation(summary = "Pobierz listę produktów (Paginacja)", description = "Zwraca stronę produktów. Parametry: page (od 0), size (domyślnie 20).")
+    @Operation(summary = "Pobierz listę produktów (Paginacja)", description = "Zwraca stronę produktów.")
     public ResponseEntity<Page<ProductDto>> getAllProducts(Pageable pageable) {
         Page<Product> productsPage = productRepo.findByDeletedFalse(pageable);
-        Page<ProductDto> dtoPage = productsPage.map(this::mapToDto);
-        return ResponseEntity.ok(dtoPage);
+        return ResponseEntity.ok(productsPage.map(this::mapToDto));
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Pobierz szczegóły produktu", description = "Zwraca pełną konfigurację produktu.")
+    @Operation(summary = "Pobierz szczegóły produktu")
     public ResponseEntity<ProductDto> getProduct(@PathVariable Long id) {
         return productRepo.findById(id)
                 .filter(p -> !p.isDeleted())
@@ -56,80 +46,23 @@ public class ProductRestController {
     }
 
     @PostMapping
-    @Transactional
-    @Operation(summary = "Utwórz produkt z konfiguracją", description = "Tworzy produkt, przypisuje kategorię i definiuje listę dostępnych składników.")
+    @Operation(summary = "Utwórz produkt")
     public ResponseEntity<ProductDto> createProduct(@RequestBody @Valid CreateProductRequest request) {
-
-        Product product = new Product();
-        product.setName(request.getName());
-        product.setBasePrice(request.getBasePrice());
-        product.setDescription(request.getDescription());
-        product.setImageUrl(request.getImageUrl() != null ? request.getImageUrl() : "placeholder.png");
-
-        Category category = categoryRepo.findById(request.getCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Kategoria o ID " + request.getCategoryId() + " nie istnieje"));
-        product.setCategory(category);
-
-        Product savedProduct = productRepo.save(product);
-
-        if (request.getIngredients() != null && !request.getIngredients().isEmpty()) {
-            List<ProductIngredient> configs = new ArrayList<>();
-            int order = 1;
-
-            for (CreateProductRequest.IngredientConfig configDto : request.getIngredients()) {
-                Ingredient ingredient = ingredientRepo.findById(configDto.getIngredientId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Składnik o ID " + configDto.getIngredientId() + " nie istnieje"));
-
-                ProductIngredient pi = new ProductIngredient();
-                pi.setProduct(savedProduct);
-                pi.setIngredient(ingredient);
-                pi.setDefault(configDto.isDefault());
-                pi.setMaxQuantity(configDto.getMaxQuantity() != null ? configDto.getMaxQuantity() : 1);
-                pi.setCustomPrice(configDto.getCustomPrice());
-                pi.setDisplayOrder(order++);
-
-                configs.add(pi);
-            }
-            productIngredientRepo.saveAll(configs);
-            savedProduct = productRepo.findById(savedProduct.getId()).orElseThrow();
-        }
+        Product savedProduct = productService.createProduct(request);
         return ResponseEntity.status(201).body(mapToDto(savedProduct));
     }
 
     @PutMapping("/{id}")
-    @Transactional
-    @Operation(summary = "Zaktualizuj produkt", description = "Aktualizuje podstawowe dane produktu.")
+    @Operation(summary = "Zaktualizuj produkt")
     public ResponseEntity<ProductDto> updateProduct(@PathVariable Long id, @RequestBody @Valid CreateProductRequest request) {
-        Product product = productRepo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Produkt nie istnieje"));
-
-        if (product.isDeleted()) {
-            throw new ResourceNotFoundException("Produkt nie istnieje");
-        }
-
-        product.setName(request.getName());
-        product.setBasePrice(request.getBasePrice());
-        product.setDescription(request.getDescription());
-
-        if (request.getCategoryId() != null) {
-            Category category = categoryRepo.findById(request.getCategoryId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Kategoria nie istnieje"));
-            product.setCategory(category);
-        }
-
-        productRepo.save(product);
-        return ResponseEntity.ok(mapToDto(product));
+        Product updatedProduct = productService.updateProduct(id, request);
+        return ResponseEntity.ok(mapToDto(updatedProduct));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Usuń produkt", description = "Wykonuje miękkie usuwanie produktu (ukrycie).")
+    @Operation(summary = "Usuń produkt")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-        Product product = productRepo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Produkt nie istnieje"));
-
-        product.setDeleted(true);
-        productRepo.save(product);
-
+        productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
     }
 

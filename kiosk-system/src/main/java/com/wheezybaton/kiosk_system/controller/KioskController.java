@@ -2,11 +2,11 @@ package com.wheezybaton.kiosk_system.controller;
 
 import com.wheezybaton.kiosk_system.model.Order;
 import com.wheezybaton.kiosk_system.model.OrderType;
-import com.wheezybaton.kiosk_system.service.CartService;
-import com.wheezybaton.kiosk_system.service.OrderService;
-import com.wheezybaton.kiosk_system.repository.ProductRepository;
 import com.wheezybaton.kiosk_system.model.Product;
 import com.wheezybaton.kiosk_system.model.ProductIngredient;
+import com.wheezybaton.kiosk_system.service.CartService;
+import com.wheezybaton.kiosk_system.service.OrderService;
+import com.wheezybaton.kiosk_system.service.ProductService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -23,7 +23,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class KioskController {
 
-    private final ProductRepository productRepo;
+    private final ProductService productService;
     private final CartService cartService;
     private final OrderService orderService;
 
@@ -40,15 +40,14 @@ public class KioskController {
 
     @GetMapping("/menu")
     public String showMenu(Model model) {
-        model.addAttribute("products", productRepo.findByDeletedFalse());
+        model.addAttribute("products", productService.getAllProducts());
         model.addAttribute("cart", cartService.getSession());
         return "menu";
     }
 
     @GetMapping("/configure")
     public String showConfiguration(@RequestParam Long productId, Model model) {
-        Product product = productRepo.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Nie znaleziono produktu"));
+        Product product = productService.getProductById(productId);
         model.addAttribute("product", product);
         return "configure";
     }
@@ -59,7 +58,7 @@ public class KioskController {
             @RequestParam int quantity,
             HttpServletRequest request
     ) {
-        Product product = productRepo.findById(productId).orElseThrow();
+        Product product = productService.getProductById(productId);
 
         List<Long> addedIds = new ArrayList<>();
         List<Long> removedIds = new ArrayList<>();

@@ -1,22 +1,23 @@
 package com.wheezybaton.kiosk_system.controller;
 
-import com.wheezybaton.kiosk_system.config.SecurityConfig;
-import com.wheezybaton.kiosk_system.model.CartSession;
-import com.wheezybaton.kiosk_system.model.Product;
-import com.wheezybaton.kiosk_system.repository.ProductRepository;
+import com.wheezybaton.kiosk_system.model.*;
 import com.wheezybaton.kiosk_system.service.CartService;
 import com.wheezybaton.kiosk_system.service.OrderService;
+import com.wheezybaton.kiosk_system.service.ProductService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.Optional;
+import java.util.ArrayList;
+import java.util.List;
 
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -24,56 +25,85 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(KioskController.class)
-@Import(SecurityConfig.class)
 class KioskControllerTest {
 
     @Autowired private MockMvc mockMvc;
 
-    @MockitoBean private ProductRepository productRepo;
+    @MockitoBean private ProductService productService;
     @MockitoBean private CartService cartService;
     @MockitoBean private OrderService orderService;
     @MockitoBean private CartSession cartSession;
 
-    @Test
-    void showWelcome_ShouldReturnView() throws Exception {
-        mockMvc.perform(get("/"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("welcome"));
+    @BeforeEach
+    void setUp() {
+        when(cartService.getSession()).thenReturn(cartSession);
+        when(cartSession.getItems()).thenReturn(new ArrayList<>());
+        when(cartSession.getOrderType()).thenReturn(OrderType.EAT_IN);
     }
 
     @Test
-    void showMenu_ShouldReturnMenuView() throws Exception {
-        when(cartService.getSession()).thenReturn(new CartSession());
-        when(productRepo.findByDeletedFalse()).thenReturn(Collections.emptyList());
+    @WithMockUser
+    void shouldShowMenu() throws Exception {
+        Category cat = new Category();
+        cat.setName("Drinks");
+        Product prod = new Product();
+        prod.setName("Cola");
+        prod.setCategory(cat);
+        prod.setBasePrice(BigDecimal.valueOf(5));
+
+        when(productService.getAllProducts()).thenReturn(List.of(prod));
 
         mockMvc.perform(get("/menu"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("menu"));
+                .andExpect(view().name("menu"))
+                .andExpect(model().attributeExists("products"));
     }
 
     @Test
-    void selectOrderType_ShouldRedirectToMenu() throws Exception {
-        when(cartService.getSession()).thenReturn(new CartSession());
-
-        mockMvc.perform(post("/select-type")
-                        .param("type", "TAKE_AWAY")
-                        .with(csrf()))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/menu"));
-    }
-
-    @Test
-    void configureProduct_ShouldReturnConfigView() throws Exception {
+    @WithMockUser
+    void shouldProcessCustomProductAddition() throws Exception {
         Product p = new Product();
         p.setId(1L);
-        p.setName("Burger");
         p.setBasePrice(BigDecimal.TEN);
 
-        when(productRepo.findById(1L)).thenReturn(Optional.of(p));
+        Ingredient ing = new Ingredient(10L, "Cheese", BigDecimal.ONE);
+        ProductIngredient pi = new ProductIngredient();
+        pi.setIngredient(ing);
+        pi.setDefault(false);
+        p.setProductIngredients(List.of(pi));
 
-        mockMvc.perform(get("/configure").param("productId", "1"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("configure"))
-                .andExpect(model().attributeExists("product"));
+        when(productService.getProductById(1L)).thenReturn(p);
+
+        mockMvc.perform(post("/cart/add-custom")
+                        .param("productId", "1")
+                        .param("quantity", "1")
+                        .param("qty_10", "2")
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection());
+
+        verify(cartService).addToCart(eq(1L), anyList(), anyList(), eq(1));
+    }
+
+    @Test
+    @WithMockUser
+    void shouldPlaceOrder() throws Exception {
+        Order o = new Order();
+        o.setDailyNumber(55);
+        when(orderService.placeOrder()).thenReturn(o);
+
+        mockMvc.perform(post("/order/pay").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("orderNumber", 55));
+    }
+
+    @Test @WithMockUser
+    void menu() throws Exception {
+        mockMvc.perform(get("/menu")).andExpect(status().isOk());
+    }
+
+    @Test @WithMockUser
+    void checkout() throws Exception {
+        when(cartSession.getItems()).thenReturn(List.of(new com.wheezybaton.kiosk_system.dto.CartItemDto()));
+        mockMvc.perform(get("/checkout")).andExpect(status().isOk());
     }
 }

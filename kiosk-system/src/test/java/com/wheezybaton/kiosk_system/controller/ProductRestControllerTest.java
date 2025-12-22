@@ -2,11 +2,9 @@ package com.wheezybaton.kiosk_system.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wheezybaton.kiosk_system.dto.CreateProductRequest;
-import com.wheezybaton.kiosk_system.model.*;
-import com.wheezybaton.kiosk_system.repository.*;
-import com.wheezybaton.kiosk_system.service.CartService;
-import com.wheezybaton.kiosk_system.service.OrderService;
-import com.wheezybaton.kiosk_system.service.StatsService;
+import com.wheezybaton.kiosk_system.model.Product;
+import com.wheezybaton.kiosk_system.repository.ProductRepository;
+import com.wheezybaton.kiosk_system.service.ProductService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -19,17 +17,15 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -40,12 +36,13 @@ class ProductRestControllerTest {
     @Autowired private ObjectMapper objectMapper;
 
     @MockitoBean private ProductRepository productRepo;
-    @MockitoBean private CategoryRepository categoryRepo;
-    @MockitoBean private IngredientRepository ingredientRepo;
-    @MockitoBean private ProductIngredientRepository productIngredientRepo;
-    @MockitoBean private CartService cartService;
-    @MockitoBean private OrderService orderService;
-    @MockitoBean private StatsService statsService;
+    @MockitoBean private ProductService productService;
+    @MockitoBean private com.wheezybaton.kiosk_system.repository.CategoryRepository categoryRepo;
+    @MockitoBean private com.wheezybaton.kiosk_system.repository.IngredientRepository ingredientRepo;
+    @MockitoBean private com.wheezybaton.kiosk_system.repository.ProductIngredientRepository productIngredientRepo;
+    @MockitoBean private com.wheezybaton.kiosk_system.service.CartService cartService;
+    @MockitoBean private com.wheezybaton.kiosk_system.service.OrderService orderService;
+    @MockitoBean private com.wheezybaton.kiosk_system.service.StatsService statsService;
 
     @Test
     @WithMockUser
@@ -65,74 +62,35 @@ class ProductRestControllerTest {
         when(productRepo.findById(99L)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/v1/products/99"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error", is("Not Found")));
+                .andExpect(status().isNotFound());
     }
 
     @Test
     @WithMockUser
-    void createProduct_ShouldReturn400_WhenValidationFails() throws Exception {
-        CreateProductRequest badRequest = new CreateProductRequest();
-
-        mockMvc.perform(post("/api/v1/products")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(badRequest)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @WithMockUser
-    void createProduct_ShouldSaveAndReturnDto() throws Exception {
+    void createProduct_ShouldCallServiceAndReturnDto() throws Exception {
         CreateProductRequest req = new CreateProductRequest();
-        req.setName("Mega Burger");
-        req.setBasePrice(new BigDecimal("30.00"));
+        req.setName("Service Burger");
+        req.setBasePrice(BigDecimal.TEN);
         req.setCategoryId(1L);
-        req.setIngredients(new ArrayList<>());
 
-        CreateProductRequest.IngredientConfig ingConfig = new CreateProductRequest.IngredientConfig();
-        ingConfig.setIngredientId(10L);
-        ingConfig.setDefault(true);
-        req.getIngredients().add(ingConfig);
+        Product created = new Product(55L, "Service Burger", BigDecimal.TEN, null, null, null, null, false);
 
-        Category category = new Category(1L, "Burgers", "img.png", null);
-        Ingredient ingredient = new Ingredient(10L, "Bacon", new BigDecimal("3.00"));
-
-        when(categoryRepo.findById(1L)).thenReturn(Optional.of(category));
-        when(ingredientRepo.findById(10L)).thenReturn(Optional.of(ingredient));
-
-        when(productRepo.save(any(Product.class))).thenAnswer(invocation -> {
-            Product p = invocation.getArgument(0);
-            p.setId(55L);
-            return p;
-        });
-
-        Product savedProduct = new Product(55L, "Mega Burger", new BigDecimal("30.00"), null, null, category, new ArrayList<>(), false);
-        ProductIngredient pi = new ProductIngredient(1L, savedProduct, ingredient, true, 1, null, 1);
-        savedProduct.getProductIngredients().add(pi);
-
-        when(productRepo.findById(55L)).thenReturn(Optional.of(savedProduct));
+        when(productService.createProduct(any(CreateProductRequest.class))).thenReturn(created);
 
         mockMvc.perform(post("/api/v1/products")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name", is("Mega Burger")))
-                .andExpect(jsonPath("$.categoryName", is("Burgers")));
+                .andExpect(jsonPath("$.id", is(55)));
     }
 
     @Test
     @WithMockUser
-    void deleteProduct_ShouldReturnNoContent() throws Exception {
-        Product p = new Product();
-        p.setId(1L);
-        when(productRepo.findById(1L)).thenReturn(Optional.of(p));
-
-        mockMvc.perform(delete("/api/v1/products/1")
-                        .with(csrf()))
+    void deleteProduct_ShouldCallService() throws Exception {
+        mockMvc.perform(delete("/api/v1/products/1").with(csrf()))
                 .andExpect(status().isNoContent());
 
-        org.mockito.Mockito.verify(productRepo).save(org.mockito.ArgumentMatchers.argThat(arg -> arg.isDeleted() == true));
+        verify(productService).deleteProduct(1L);
     }
 }

@@ -1,5 +1,6 @@
 package com.wheezybaton.kiosk_system.repository;
 
+import com.wheezybaton.kiosk_system.model.Category;
 import com.wheezybaton.kiosk_system.model.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
