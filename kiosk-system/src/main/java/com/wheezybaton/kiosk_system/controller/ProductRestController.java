@@ -16,6 +16,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -36,13 +38,11 @@ public class ProductRestController {
     private final ProductIngredientRepository productIngredientRepo;
 
     @GetMapping
-    @Operation(summary = "Pobierz listę produktów", description = "Zwraca produkty wraz z ich możliwymi dodatkami.")
-    public ResponseEntity<List<ProductDto>> getAllProducts() {
-        List<Product> products = productRepo.findByDeletedFalse();
-        List<ProductDto> dtos = products.stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
+    @Operation(summary = "Pobierz listę produktów (Paginacja)", description = "Zwraca stronę produktów. Parametry: page (od 0), size (domyślnie 20).")
+    public ResponseEntity<Page<ProductDto>> getAllProducts(Pageable pageable) {
+        Page<Product> productsPage = productRepo.findByDeletedFalse(pageable);
+        Page<ProductDto> dtoPage = productsPage.map(this::mapToDto);
+        return ResponseEntity.ok(dtoPage);
     }
 
     @GetMapping("/{id}")
