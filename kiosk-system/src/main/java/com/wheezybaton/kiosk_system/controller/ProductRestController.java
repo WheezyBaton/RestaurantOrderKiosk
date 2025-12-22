@@ -49,6 +49,7 @@ public class ProductRestController {
     @Operation(summary = "Pobierz szczegóły produktu", description = "Zwraca pełną konfigurację produktu.")
     public ResponseEntity<ProductDto> getProduct(@PathVariable Long id) {
         return productRepo.findById(id)
+                .filter(p -> !p.isDeleted())
                 .map(this::mapToDto)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ResourceNotFoundException("Produkt o ID " + id + " nie istnieje"));
@@ -93,6 +94,43 @@ public class ProductRestController {
             savedProduct = productRepo.findById(savedProduct.getId()).orElseThrow();
         }
         return ResponseEntity.status(201).body(mapToDto(savedProduct));
+    }
+
+    @PutMapping("/{id}")
+    @Transactional
+    @Operation(summary = "Zaktualizuj produkt", description = "Aktualizuje podstawowe dane produktu.")
+    public ResponseEntity<ProductDto> updateProduct(@PathVariable Long id, @RequestBody @Valid CreateProductRequest request) {
+        Product product = productRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Produkt nie istnieje"));
+
+        if (product.isDeleted()) {
+            throw new ResourceNotFoundException("Produkt nie istnieje");
+        }
+
+        product.setName(request.getName());
+        product.setBasePrice(request.getBasePrice());
+        product.setDescription(request.getDescription());
+
+        if (request.getCategoryId() != null) {
+            Category category = categoryRepo.findById(request.getCategoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Kategoria nie istnieje"));
+            product.setCategory(category);
+        }
+
+        productRepo.save(product);
+        return ResponseEntity.ok(mapToDto(product));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Usuń produkt", description = "Wykonuje miękkie usuwanie produktu (ukrycie).")
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+        Product product = productRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Produkt nie istnieje"));
+
+        product.setDeleted(true);
+        productRepo.save(product);
+
+        return ResponseEntity.noContent().build();
     }
 
     private ProductDto mapToDto(Product product) {

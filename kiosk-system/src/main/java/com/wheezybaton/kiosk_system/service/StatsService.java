@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -15,6 +16,16 @@ import java.util.List;
 public class StatsService {
 
     private final JdbcTemplate jdbcTemplate;
+
+    public void createAuditTable() {
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS audit_log (id IDENTITY PRIMARY KEY, action VARCHAR(255), timestamp TIMESTAMP)");
+    }
+
+    public void logEvent(String action) {
+        jdbcTemplate.update("INSERT INTO audit_log (action, timestamp) VALUES (?, ?)",
+                action, LocalDateTime.now());
+    }
+
     public List<SalesStatDto> getSalesStats() {
         String sql = """
             SELECT 
@@ -41,6 +52,13 @@ public class StatsService {
     }
 
     public byte[] getSalesCsv() {
+        try {
+            createAuditTable();
+            logEvent("EXPORT_CSV_GENERATED");
+        } catch (Exception e) {
+            System.err.println("Błąd logowania audytu: " + e.getMessage());
+        }
+
         List<SalesStatDto> stats = getSalesStats();
         StringBuilder csv = new StringBuilder();
 

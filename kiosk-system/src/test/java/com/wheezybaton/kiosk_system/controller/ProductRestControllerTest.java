@@ -27,6 +27,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -83,7 +84,6 @@ class ProductRestControllerTest {
     @Test
     @WithMockUser
     void createProduct_ShouldSaveAndReturnDto() throws Exception {
-        // Arrange
         CreateProductRequest req = new CreateProductRequest();
         req.setName("Mega Burger");
         req.setBasePrice(new BigDecimal("30.00"));
@@ -117,8 +117,22 @@ class ProductRestControllerTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isCreated()) // Oczekujemy 201 Created
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name", is("Mega Burger")))
                 .andExpect(jsonPath("$.categoryName", is("Burgers")));
+    }
+
+    @Test
+    @WithMockUser
+    void deleteProduct_ShouldReturnNoContent() throws Exception {
+        Product p = new Product();
+        p.setId(1L);
+        when(productRepo.findById(1L)).thenReturn(Optional.of(p));
+
+        mockMvc.perform(delete("/api/v1/products/1")
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+
+        org.mockito.Mockito.verify(productRepo).save(org.mockito.ArgumentMatchers.argThat(arg -> arg.isDeleted() == true));
     }
 }
