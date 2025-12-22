@@ -13,6 +13,7 @@ import com.wheezybaton.kiosk_system.repository.ProductIngredientRepository;
 import com.wheezybaton.kiosk_system.repository.ProductRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,7 +56,7 @@ public class ProductRestController {
     @PostMapping
     @Transactional
     @Operation(summary = "Utwórz produkt z konfiguracją", description = "Tworzy produkt, przypisuje kategorię i definiuje listę dostępnych składników.")
-    public ResponseEntity<ProductDto> createProduct(@RequestBody CreateProductRequest request) {
+    public ResponseEntity<ProductDto> createProduct(@RequestBody @Valid CreateProductRequest request) {
 
         Product product = new Product();
         product.setName(request.getName());

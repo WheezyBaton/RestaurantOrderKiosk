@@ -15,6 +15,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.validation.Valid;
+import org.springframework.validation.BindingResult;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,13 +56,20 @@ public class AdminController {
     @PostMapping("/products/save")
     @Transactional
     public String saveProduct(
-            @ModelAttribute Product product,
+            @Valid @ModelAttribute Product product,
+            BindingResult bindingResult,
             @RequestParam("imageFile") MultipartFile multipartFile,
             @RequestParam Long categoryId,
             @RequestParam(required = false) List<Long> ingredientIds,
             @RequestParam(required = false) List<Long> defaultIngredientIds,
-            HttpServletRequest request
+            HttpServletRequest request,
+            Model model
     ) throws IOException {
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("categories", categoryRepo.findAll());
+            model.addAttribute("allIngredients", ingredientRepo.findAll());
+            return "admin/product-form";
+        }
         Category category = categoryRepo.findById(categoryId).orElseThrow();
         product.setCategory(category);
 
