@@ -40,6 +40,20 @@ public class StatsService {
         });
     }
 
+    public byte[] getSalesCsv() {
+        List<SalesStatDto> stats = getSalesStats();
+        StringBuilder csv = new StringBuilder();
+
+        csv.append("Nazwa Produktu,Sprzedana Ilosc,Przychod (PLN)\n");
+
+        for (SalesStatDto stat : stats) {
+            csv.append(stat.getProductName()).append(",")
+                    .append(stat.getTotalQuantity()).append(",")
+                    .append(stat.getTotalRevenue()).append("\n");
+        }
+        return csv.toString().getBytes();
+    }
+
     public Double getTotalRevenue() {
         String sql = "SELECT SUM(total_amount) FROM orders WHERE status != 'CANCELLED'";
         Double total = jdbcTemplate.queryForObject(sql, Double.class);

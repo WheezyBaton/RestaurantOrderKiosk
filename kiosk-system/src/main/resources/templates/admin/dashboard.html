@@ -37,8 +37,11 @@
                 </div>
             </div>
             <div class="card shadow border-0">
-                <div class="card-header bg-white">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <h4 class="mb-0 text-muted">📊 Raport Sprzedaży Produktów (Bestsellery)</h4>
+                    <a th:href="@{/admin/report/export}" class="btn btn-primary btn-sm">
+                        ⬇️ Pobierz CSV
+                    </a>
                 </div>
                 <div class="card-body p-0">
                     <table class="table table-hover mb-0">

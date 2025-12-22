@@ -17,6 +17,11 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.validation.BindingResult;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -131,5 +136,16 @@ public class AdminController {
         product.setDeleted(true);
         productRepo.save(product);
         return "redirect:/admin";
+    }
+
+    @GetMapping("/report/export")
+    public ResponseEntity<Resource> downloadReport() {
+        byte[] data = statsService.getSalesCsv();
+        ByteArrayResource resource = new ByteArrayResource(data);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"raport_sprzedazy.csv\"")
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .contentLength(data.length)
+                .body(resource);
     }
 }
