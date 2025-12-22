@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -63,5 +64,32 @@ public class OrderService {
         Order savedOrder = orderRepo.save(order);
         cartSession.clear();
         return savedOrder;
+    }
+    public List<Order> getOrdersInProgress() {
+        return orderRepo.findByStatusInOrderByCreatedAtAsc(
+                Arrays.asList(OrderStatus.NEW, OrderStatus.IN_PROGRESS)
+        );
+    }
+
+    public List<Order> getOrdersReady() {
+        return orderRepo.findByStatus(OrderStatus.READY);
+    }
+
+    @Transactional
+    public void promoteOrderStatus(Long orderId) {
+        Order order = orderRepo.findById(orderId).orElseThrow();
+
+        switch (order.getStatus()) {
+            case NEW:
+            case IN_PROGRESS:
+                order.setStatus(OrderStatus.READY);
+                break;
+            case READY:
+                order.setStatus(OrderStatus.COMPLETED);
+                break;
+            default:
+                break;
+        }
+        orderRepo.save(order);
     }
 }

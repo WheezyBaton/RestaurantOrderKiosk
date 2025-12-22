@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="5">
+    <title>Status Zamówień</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+      body { background-color: #212529; color: white; height: 100vh; overflow: hidden; }
+      .column-header { font-size: 2.5rem; font-weight: bold; padding: 20px; text-align: center; border-bottom: 3px solid white; }
+      .order-number { font-size: 4rem; font-weight: bold; display: block; padding: 10px; }
+      .col-left { border-right: 2px solid #444; }
+      .ready-text { color: #28a745; animation: blink 2s infinite; }
+      @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+  </head>
+  <body>
+    <div class="container-fluid h-100">
+      <div class="row h-100">
+        <div class="col-6 col-left p-0">
+          <div class="column-header bg-secondary">
+            ⏳ W TRAKCIE REALIZACJI
+          </div>
+          <div class="p-4 text-center">
+            <div class="row">
+              <div class="col-4" th:each="order : ${inProgress}">
+                <span class="order-number text-white" th:text="${order.dailyNumber}">#101</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 p-0">
+          <div class="column-header bg-success">
+            ✅ GOTOWE DO ODBIORU
+          </div>
+          <div class="p-4 text-center">
+            <div class="row">
+              <div class="col-6" th:each="order : ${ready}">
+                <span class="order-number ready-text" th:text="${order.dailyNumber}">#99</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

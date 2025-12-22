@@ -25,15 +25,27 @@ public class SecurityConfig {
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/", "/menu", "/configure", "/cart/**", "/order/**", "/select-type", "/checkout", "/order-success").permitAll()
+                        .requestMatchers("/", "/menu", "/configure", "/cart/**", "/order/**", "/select-type", "/checkout", "/order-success", "/board").permitAll()
                         .requestMatchers("/h2-console/**", "/images/**", "/css/**", "/js/**", "/uploads/**").permitAll()
                         .requestMatchers("/api/v1/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/kitchen/**").hasRole("KITCHEN")
                         .anyRequest().authenticated()
                 )
                 .formLogin(login -> login
-                        .defaultSuccessUrl("/admin", true)
+                        .successHandler((request, response, authentication) -> {
+                            var authorities = authentication.getAuthorities();
+                            String redirectUrl = "/";
+
+                            if (authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+                                redirectUrl = "/admin";
+                            } else if (authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_KITCHEN"))) {
+                                redirectUrl = "/kitchen";
+                            }
+
+                            response.sendRedirect(redirectUrl);
+                        })
                         .permitAll()
                 )
                 .httpBasic(withDefaults())
@@ -58,6 +70,12 @@ public class SecurityConfig {
                 .roles("ADMIN")
                 .build();
 
-        return new InMemoryUserDetailsManager(admin);
+        UserDetails kitchenStaff = User.builder()
+                .username("kitchen")
+                .password(encoder.encode("kitchen"))
+                .roles("KITCHEN")
+                .build();
+
+        return new InMemoryUserDetailsManager(admin, kitchenStaff);
     }
 }
