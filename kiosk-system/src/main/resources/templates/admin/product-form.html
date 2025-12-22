@@ -42,7 +42,8 @@
                                         <select name="categoryId" class="form-select">
                                             <option th:each="cat : ${categories}"
                                                     th:value="${cat.id}"
-                                                    th:text="${cat.name}"></option>
+                                                    th:text="${cat.name}"
+                                                    th:selected="${product.category != null and product.category.id == cat.id}"></option>
                                         </select>
                                     </div>
                                 </div>
@@ -61,28 +62,38 @@
                                             </tr>
                                             </thead>
                                             <tbody>
-                                            <tr th:each="ing : ${allIngredients}">
+                                            <tr th:each="ing : ${allIngredients}"
+                                                th:with="config=${activeIngredients != null ? activeIngredients.get(ing.id) : null}">
+
                                                 <td>
                                                     <input class="form-check-input" type="checkbox"
                                                            name="ingredientIds"
-                                                           th:value="${ing.id}">
+                                                           th:value="${ing.id}"
+                                                           th:checked="${config != null}">
                                                 </td>
+
                                                 <td th:text="${ing.name} + ' (' + ${ing.price} + ' zł)'">Ser</td>
+
                                                 <td>
                                                     <input class="form-check-input" type="checkbox"
                                                            name="defaultIngredientIds"
-                                                           th:value="${ing.id}">
+                                                           th:value="${ing.id}"
+                                                           th:checked="${config != null and config.default}">
                                                 </td>
+
                                                 <td>
                                                     <input type="number" step="0.01"
                                                            th:name="'customPrice_' + ${ing.id}"
                                                            class="form-control form-control-sm"
-                                                           placeholder="Domyślna">
+                                                           placeholder="Domyślna"
+                                                           th:value="${config != null ? config.customPrice : ''}">
                                                 </td>
+
                                                 <td>
-                                                    <input type="number" min="1" max="10" value="1"
+                                                    <input type="number" min="1" max="10"
                                                            th:name="'maxQty_' + ${ing.id}"
-                                                           class="form-control form-control-sm">
+                                                           class="form-control form-control-sm"
+                                                           th:value="${config != null ? config.maxQuantity : 1}">
                                                 </td>
                                             </tr>
                                             </tbody>
@@ -96,6 +107,14 @@
                                 <hr class="my-4">
                                 <div class="mb-3">
                                     <label>Zdjęcie</label>
+                                    <div th:if="${product.imageUrl != null}" class="mb-2">
+                                        <img th:if="${!product.imageUrl.startsWith('http')}"
+                                             th:src="@{'/images/uploads/' + ${product.imageUrl}}"
+                                             style="height: 100px; border-radius: 5px;">
+                                        <img th:if="${product.imageUrl.startsWith('http')}"
+                                             th:src="${product.imageUrl}"
+                                             style="height: 100px; border-radius: 5px;">
+                                    </div>
                                     <input type="file" name="imageFile" class="form-control" accept="image/*">
                                     <small class="text-muted">Pozostaw puste, aby zachować obecne.</small>
                                 </div>

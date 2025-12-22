@@ -16,6 +16,8 @@ public class ProductIngredient {
 
     @ManyToOne
     @JoinColumn(name = "product_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Product product;
 
     @ManyToOne

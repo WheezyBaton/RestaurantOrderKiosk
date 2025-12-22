@@ -28,7 +28,10 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.file.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/admin")
@@ -55,6 +58,7 @@ public class AdminController {
         model.addAttribute("product", new Product());
         model.addAttribute("categories", categoryRepo.findAll());
         model.addAttribute("allIngredients", ingredientRepo.findAll());
+        model.addAttribute("activeIngredients", new HashMap<Long, ProductIngredient>());
         return "admin/product-form";
     }
 
@@ -73,6 +77,7 @@ public class AdminController {
         if (bindingResult.hasErrors()) {
             model.addAttribute("categories", categoryRepo.findAll());
             model.addAttribute("allIngredients", ingredientRepo.findAll());
+            model.addAttribute("activeIngredients", new HashMap<Long, ProductIngredient>());
             return "admin/product-form";
         }
         Category category = categoryRepo.findById(categoryId).orElseThrow();
@@ -92,11 +97,16 @@ public class AdminController {
             Product existing = productRepo.findById(product.getId()).orElse(null);
             if (existing != null) product.setImageUrl(existing.getImageUrl());
         }
+
         Product savedProduct = productRepo.save(product);
 
-        List<ProductIngredient> currentConfigs = savedProduct.getProductIngredients();
-        if (currentConfigs != null && !currentConfigs.isEmpty()) {
+        List<ProductIngredient> currentConfigs = productIngredientRepo.findAll().stream()
+                .filter(pi -> pi.getProduct().getId().equals(savedProduct.getId()))
+                .collect(Collectors.toList());
+
+        if (!currentConfigs.isEmpty()) {
             productIngredientRepo.deleteAll(currentConfigs);
+            productIngredientRepo.flush();
         }
 
         if (ingredientIds != null) {
@@ -147,5 +157,28 @@ public class AdminController {
                 .contentType(MediaType.parseMediaType("text/csv"))
                 .contentLength(data.length)
                 .body(resource);
+    }
+
+    @GetMapping("/products/edit/{id}")
+    public String showEditForm(@PathVariable Long id, Model model) {
+        Product product = productRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Nie znaleziono produktu o ID: " + id));
+
+        model.addAttribute("product", product);
+        model.addAttribute("categories", categoryRepo.findAll());
+        model.addAttribute("allIngredients", ingredientRepo.findAll());
+
+        Map<Long, ProductIngredient> activeIngredients = new HashMap<>();
+        if (product.getProductIngredients() != null) {
+            activeIngredients = product.getProductIngredients().stream()
+                    .collect(Collectors.toMap(
+                            pi -> pi.getIngredient().getId(),
+                            pi -> pi,
+                            (existing, replacement) -> existing
+                    ));
+        }
+        model.addAttribute("activeIngredients", activeIngredients);
+
+        return "admin/product-form";
     }
 }

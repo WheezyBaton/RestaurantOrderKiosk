@@ -18,5 +18,7 @@ public class Category {
     private String imageUrl;
 
     @OneToMany(mappedBy = "category")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private List<Product> products;
 }
