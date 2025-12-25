@@ -27,16 +27,22 @@ class StatsServiceTest {
 
     @Test
     void getTotalRevenue_ShouldReturnAmount() {
-        when(jdbcTemplate.queryForObject(anyString(), eq(Double.class))).thenReturn(100.50);
-        Double result = statsService.getTotalRevenue();
-        assertEquals(100.50, result);
+        when(jdbcTemplate.queryForObject(anyString(), eq(BigDecimal.class)))
+                .thenReturn(new BigDecimal("100.50"));
+
+        BigDecimal result = statsService.getTotalRevenue();
+
+        assertEquals(new BigDecimal("100.50"), result);
     }
 
     @Test
     void getTodayOrdersCount_ShouldReturnCount() {
-        when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class))).thenReturn(5);
-        Integer result = statsService.getTodayOrdersCount();
-        assertEquals(5, result);
+        when(jdbcTemplate.queryForObject(anyString(), eq(Long.class)))
+                .thenReturn(5L);
+
+        Long result = statsService.getTodayOrdersCount();
+
+        assertEquals(5L, result);
     }
 
     @Test

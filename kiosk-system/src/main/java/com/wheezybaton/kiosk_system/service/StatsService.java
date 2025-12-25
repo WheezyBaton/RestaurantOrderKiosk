@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -18,12 +19,17 @@ public class StatsService {
     private final JdbcTemplate jdbcTemplate;
 
     public void createAuditTable() {
-        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS audit_log (id IDENTITY PRIMARY KEY, action VARCHAR(255), timestamp TIMESTAMP)");
+        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS audit_log (id SERIAL PRIMARY KEY, action VARCHAR(255), timestamp TIMESTAMP)");
     }
 
     public void logEvent(String action) {
-        jdbcTemplate.update("INSERT INTO audit_log (action, timestamp) VALUES (?, ?)",
-                action, LocalDateTime.now());
+        try {
+            createAuditTable();
+            jdbcTemplate.update("INSERT INTO audit_log (action, timestamp) VALUES (?, ?)",
+                    action, LocalDateTime.now());
+        } catch (Exception e) {
+            System.err.println("Nie udało się zapisać logu audytowego: " + e.getMessage());
+        }
     }
 
     public List<SalesStatDto> getSalesStats() {
@@ -39,25 +45,22 @@ public class StatsService {
             GROUP BY p.name
             ORDER BY total_rev DESC
         """;
+
         return jdbcTemplate.query(sql, new RowMapper<SalesStatDto>() {
             @Override
             public SalesStatDto mapRow(ResultSet rs, int rowNum) throws SQLException {
+                BigDecimal revenue = rs.getBigDecimal("total_rev");
                 return new SalesStatDto(
                         rs.getString("product_name"),
                         rs.getLong("total_qty"),
-                        rs.getBigDecimal("total_rev")
+                        revenue != null ? revenue : BigDecimal.ZERO
                 );
             }
         });
     }
 
     public byte[] getSalesCsv() {
-        try {
-            createAuditTable();
-            logEvent("EXPORT_CSV_GENERATED");
-        } catch (Exception e) {
-            System.err.println("Błąd logowania audytu: " + e.getMessage());
-        }
+        logEvent("EXPORT_CSV_GENERATED");
 
         List<SalesStatDto> stats = getSalesStats();
         StringBuilder csv = new StringBuilder();
@@ -69,17 +72,37 @@ public class StatsService {
                     .append(stat.getTotalQuantity()).append(",")
                     .append(stat.getTotalRevenue()).append("\n");
         }
+
         return csv.toString().getBytes();
     }
 
-    public Double getTotalRevenue() {
+    public BigDecimal getTotalRevenue() {
         String sql = "SELECT SUM(total_amount) FROM orders WHERE status != 'CANCELLED'";
-        Double total = jdbcTemplate.queryForObject(sql, Double.class);
-        return total != null ? total : 0.0;
+        try {
+            BigDecimal total = jdbcTemplate.queryForObject(sql, BigDecimal.class);
+            return total != null ? total : BigDecimal.ZERO;
+        } catch (Exception e) {
+            return BigDecimal.ZERO;
+        }
     }
 
-    public Integer getTodayOrdersCount() {
+    public BigDecimal getMonthlyRevenue() {
+        String sql = "SELECT SUM(total_amount) FROM orders WHERE status != 'CANCELLED' AND EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM CURRENT_DATE)";
+        try {
+            BigDecimal total = jdbcTemplate.queryForObject(sql, BigDecimal.class);
+            return total != null ? total : BigDecimal.ZERO;
+        } catch (Exception e) {
+            return BigDecimal.ZERO;
+        }
+    }
+
+    public Long getTodayOrdersCount() {
         String sql = "SELECT COUNT(*) FROM orders WHERE created_at >= CURRENT_DATE";
-        return jdbcTemplate.queryForObject(sql, Integer.class);
+        try {
+            Long count = jdbcTemplate.queryForObject(sql, Long.class);
+            return count != null ? count : 0L;
+        } catch (Exception e) {
+            return 0L;
+        }
     }
 }

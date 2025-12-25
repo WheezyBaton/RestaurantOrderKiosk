@@ -51,6 +51,7 @@ public class AdminController {
         model.addAttribute("products", productRepo.findByDeletedFalseOrderByIdAsc());
         model.addAttribute("salesStats", statsService.getSalesStats());
         model.addAttribute("totalRevenue", statsService.getTotalRevenue());
+        model.addAttribute("monthlyRevenue", statsService.getMonthlyRevenue());
         model.addAttribute("todayOrders", statsService.getTodayOrdersCount());
         return "admin/dashboard";
     }
@@ -94,7 +95,6 @@ public class AdminController {
 
         if (product.getId() == null) {
             product.setAvailable(false);
-
             if (!multipartFile.isEmpty()) {
                 saveImage(product, multipartFile);
             } else {
@@ -104,7 +104,6 @@ public class AdminController {
             Product existing = productRepo.findById(product.getId()).orElse(null);
             if (existing != null) {
                 product.setAvailable(existing.isAvailable());
-
                 if (!multipartFile.isEmpty()) {
                     saveImage(product, multipartFile);
                 } else {
