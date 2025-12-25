@@ -48,7 +48,7 @@ public class AdminController {
 
     @GetMapping
     public String dashboard(Model model) {
-        model.addAttribute("products", productRepo.findByDeletedFalse());
+        model.addAttribute("products", productRepo.findByDeletedFalseOrderByIdAsc());
         model.addAttribute("salesStats", statsService.getSalesStats());
         model.addAttribute("totalRevenue", statsService.getTotalRevenue());
         model.addAttribute("todayOrders", statsService.getTodayOrdersCount());
