@@ -47,7 +47,6 @@
             <div class="row justify-content-center">
                 <div class="col-md-8">
                     <div class="card shadow border-0">
-
                         <div class="card-body p-0">
                             <div class="row g-0">
                                 <div class="col-md-4 bg-white d-flex align-items-center justify-content-center p-3">
@@ -64,9 +63,9 @@
                                     <h2 th:text="${product.name}" class="mb-1">Burger</h2>
                                     <p class="text-muted small mb-2" th:text="${product.description}">Opis...</p>
                                     <h3 class="text-success fw-bold">
-                                        <span id="total-price-display"
-                                              th:data-base-price="${product.basePrice}"
-                                              th:text="${product.basePrice}">25.00</span> PLN
+                                                <span id="total-price-display"
+                                                      th:data-base-price="${product.basePrice}"
+                                                      th:text="${product.basePrice}">25.00</span> PLN
                                     </h3>
                                 </div>
                             </div>
@@ -75,6 +74,7 @@
                         <div class="card-body p-4">
                             <form th:action="@{/cart/add-custom}" method="post" id="configForm">
                                 <input type="hidden" name="productId" th:value="${product.id}">
+                                <input type="hidden" name="cartItemId" th:if="${cartItemId}" th:value="${cartItemId}">
                                 <h5 class="mb-3 fw-bold">Składniki:</h5>
                                 <div class="list-group mb-4 shadow-sm">
                                     <div class="list-group-item p-3 ingredient-row" th:each="conf : ${product.productIngredients}">
@@ -83,17 +83,14 @@
                                                 <div class="fw-bold fs-5" th:text="${conf.ingredient.name}">Składnik</div>
                                                 <span class="dynamic-badge"
                                                       th:data-unit-price="${conf.getEffectivePrice()}">
-                                                      <span th:if="${conf.isDefault}" class="badge bg-success-subtle text-success border border-success-subtle">W cenie</span>
-                                                      <span th:if="${!conf.isDefault}" class="badge bg-warning-subtle text-dark border border-warning-subtle"
-                                                            th:text="'+' + ${conf.getEffectivePrice()} + ' PLN'">+2.00 PLN</span>
-                                                </span>
+                                                        </span>
                                             </div>
                                             <div>
                                                 <div th:if="${conf.maxQuantity == 1}">
                                                     <input class="form-check-input fs-4 ingredient-check"
                                                            type="checkbox"
                                                            th:name="'qty_' + ${conf.ingredient.id}"
-                                                           th:checked="${conf.isDefault}"
+                                                           th:checked="${ingredientQuantities.get(conf.ingredient.id) == 1}"
                                                            th:data-price="${conf.getEffectivePrice()}"
                                                            th:data-default="${conf.isDefault ? 1 : 0}">
                                                 </div>
@@ -102,7 +99,7 @@
                                                     <input type="number"
                                                            th:name="'qty_' + ${conf.ingredient.id}"
                                                            class="qty-input ingredient-stepper"
-                                                           th:value="${conf.isDefault ? 1 : 0}"
+                                                           th:value="${ingredientQuantities.get(conf.ingredient.id)}"
                                                            min="0"
                                                            th:max="${conf.maxQuantity}"
                                                            readonly
@@ -118,14 +115,17 @@
                                     <span class="me-3 fw-bold fs-5">Liczba zestawów:</span>
                                     <div class="stepper-container d-flex align-items-center">
                                         <span class="text-danger fw-bold btn-stepper" id="main-minus">−</span>
-                                        <input type="number" id="main-quantity" name="quantity" value="1" min="1" max="10" class="qty-input">
+                                        <input type="number" id="main-quantity" name="quantity"
+                                               th:value="${mainQuantity}" min="1" max="10" class="qty-input">
                                         <span class="text-success fw-bold btn-stepper" id="main-plus">+</span>
                                     </div>
                                 </div>
                                 <div class="d-flex gap-3">
-                                    <a th:href="@{/menu}" class="btn btn-outline-secondary btn-lg w-50">Anuluj</a>
+                                    <a th:href="${cartItemId != null ? '/checkout' : '/menu'}"
+                                       class="btn btn-outline-secondary btn-lg w-50">Anuluj</a>
                                     <button type="submit" class="btn btn-success btn-lg w-50 fw-bold">
-                                        DODAJ <span id="btn-price-display">25.00</span> PLN
+                                        <span th:text="${cartItemId != null ? 'ZAKTUALIZUJ' : 'DODAJ'}">DODAJ</span>
+                                        <span id="btn-price-display">25.00</span> PLN
                                     </button>
                                 </div>
                             </form>

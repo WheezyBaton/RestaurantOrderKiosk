@@ -35,4 +35,11 @@ public class CartSession {
     public void clear() {
         items.clear();
     }
+
+    public CartItemDto getItem(UUID itemId) {
+        return items.stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElse(null);
+    }
 }

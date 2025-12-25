@@ -1,5 +1,6 @@
 package com.wheezybaton.kiosk_system.controller;
 
+import com.wheezybaton.kiosk_system.dto.CartItemDto;
 import com.wheezybaton.kiosk_system.model.Order;
 import com.wheezybaton.kiosk_system.model.OrderType;
 import com.wheezybaton.kiosk_system.model.Product;
@@ -12,12 +13,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Controller
 @RequiredArgsConstructor
@@ -46,9 +47,49 @@ public class KioskController {
     }
 
     @GetMapping("/configure")
-    public String showConfiguration(@RequestParam Long productId, Model model) {
+    public String showConfiguration(
+            @RequestParam Long productId,
+            @RequestParam(required = false) UUID cartItemId,
+            Model model
+    ) {
         Product product = productService.getProductById(productId);
         model.addAttribute("product", product);
+
+        Map<Long, Integer> ingredientQuantities = new HashMap<>();
+        int mainQuantity = 1;
+
+        if (cartItemId != null) {
+            CartItemDto item = cartService.getCartItem(cartItemId);
+            if (item != null) {
+                mainQuantity = item.getQuantity();
+
+                for (ProductIngredient pi : product.getProductIngredients()) {
+                    ingredientQuantities.put(pi.getIngredient().getId(), pi.isDefault() ? 1 : 0);
+                }
+
+                for (Long removedId : item.getRemovedIngredientIds()) {
+                    int current = ingredientQuantities.getOrDefault(removedId, 0);
+                    if (current > 0) {
+                        ingredientQuantities.put(removedId, current - 1);
+                    }
+                }
+
+                for (Long addedId : item.getAddedIngredientIds()) {
+                    int current = ingredientQuantities.getOrDefault(addedId, 0);
+                    ingredientQuantities.put(addedId, current + 1);
+                }
+
+                model.addAttribute("cartItemId", cartItemId);
+            }
+        } else {
+            for (ProductIngredient pi : product.getProductIngredients()) {
+                ingredientQuantities.put(pi.getIngredient().getId(), pi.isDefault() ? 1 : 0);
+            }
+        }
+
+        model.addAttribute("ingredientQuantities", ingredientQuantities);
+        model.addAttribute("mainQuantity", mainQuantity);
+
         return "configure";
     }
 
@@ -56,8 +97,13 @@ public class KioskController {
     public String addCustomProduct(
             @RequestParam Long productId,
             @RequestParam int quantity,
+            @RequestParam(required = false) UUID cartItemId,
             HttpServletRequest request
     ) {
+        if (cartItemId != null) {
+            cartService.removeFromCart(cartItemId);
+        }
+
         Product product = productService.getProductById(productId);
 
         List<Long> addedIds = new ArrayList<>();
@@ -65,7 +111,6 @@ public class KioskController {
 
         for (ProductIngredient config : product.getProductIngredients()) {
             Long ingId = config.getIngredient().getId();
-
             String paramValue = request.getParameter("qty_" + ingId);
 
             int selectedQty = 0;
@@ -90,7 +135,18 @@ public class KioskController {
         }
 
         cartService.addToCart(productId, addedIds, removedIds, quantity);
+
+        if (cartItemId != null) {
+            return "redirect:/checkout";
+        }
         return "redirect:/menu";
+    }
+
+    @PostMapping("/cart/remove/{itemId}")
+    public String removeCartItem(@PathVariable UUID itemId, HttpServletRequest request) {
+        cartService.removeFromCart(itemId);
+        String referer = request.getHeader("Referer");
+        return "redirect:" + (referer != null ? referer : "/checkout");
     }
 
     @PostMapping("/cart/clear")

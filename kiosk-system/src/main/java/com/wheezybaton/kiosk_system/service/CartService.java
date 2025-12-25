@@ -75,4 +75,8 @@ public class CartService {
     public CartSession getSession() {
         return cartSession;
     }
+
+    public CartItemDto getCartItem(UUID itemId) {
+        return cartSession.getItem(itemId);
+    }
 }

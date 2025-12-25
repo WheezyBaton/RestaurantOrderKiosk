@@ -20,6 +20,7 @@
                             <th>Opis zmian</th>
                             <th>Ilość</th>
                             <th class="text-end">Cena</th>
+                            <th class="text-end" style="width: 200px;">Akcje</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -37,6 +38,19 @@
                             </td>
                             <td th:text="${item.quantity}">2</td>
                             <td class="text-end fw-bold" th:text="${item.totalPrice} + ' PLN'">50.00 PLN</td>
+                            <td class="text-end">
+                                <div class="d-flex justify-content-end gap-2">
+                                    <a th:href="@{/configure(productId=${item.productId}, cartItemId=${item.id})}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        ✏️ Edytuj
+                                    </a>
+                                    <form th:action="@{'/cart/remove/' + ${item.id}}" method="post">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            🗑️ Usuń
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
                         </tr>
                         </tbody>
                     </table>
