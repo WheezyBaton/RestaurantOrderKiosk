@@ -25,6 +25,7 @@ services:
       - SPRING_DATASOURCE_USERNAME=kioskuser
       - SPRING_DATASOURCE_PASSWORD=kioskpass
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_SQL_INIT_PLATFORM=postgresql
     volumes:
       - ./uploads:/app/uploads
 

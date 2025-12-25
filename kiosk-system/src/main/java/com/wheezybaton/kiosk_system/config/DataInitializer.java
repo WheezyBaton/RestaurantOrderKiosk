@@ -17,110 +17,28 @@ import java.util.Random;
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 
-    private final CategoryRepository categoryRepo;
     private final ProductRepository productRepo;
     private final IngredientRepository ingredientRepo;
-    private final ProductIngredientRepository productIngredientRepo;
     private final OrderRepository orderRepo;
 
     @Override
     @Transactional
     public void run(String... args) throws Exception {
-        if (productRepo.count() == 0) {
-            System.out.println("Baza jest pusta. Inicjalizacja danych startowych...");
+        if (orderRepo.count() == 0) {
+            System.out.println("Brak zamówień w bazie. Generowanie przykładowych zamówień...");
 
-            Category catBurgers = new Category(null, "Burgery", "burger.png", null);
-            Category catSides = new Category(null, "Dodatki", "burger.png", null);
-            Category catDrinks = new Category(null, "Napoje", "burger.png", null);
-            categoryRepo.saveAll(List.of(catBurgers, catSides, catDrinks));
+            List<Product> products = productRepo.findAll();
+            List<Ingredient> ingredients = ingredientRepo.findAll();
 
-            Ingredient bun = saveIng("Bułka Brioche", "0.00");
-            Ingredient beef = saveIng("Wołowina 100%", "5.00");
-            Ingredient chicken = saveIng("Kurczak w panierce", "4.00");
-            Ingredient vegePatty = saveIng("Kotlet Roślinny", "6.00");
-            Ingredient cheese = saveIng("Ser Cheddar", "2.00");
-            Ingredient bacon = saveIng("Bekon", "3.00");
-            Ingredient onion = saveIng("Cebula", "0.00");
-            Ingredient lettuce = saveIng("Sałata", "0.00");
-            Ingredient tomato = saveIng("Pomidor", "0.00");
-            Ingredient pickle = saveIng("Ogórek kiszony", "0.00");
-            Ingredient spicySauce = saveIng("Sos Ostry", "1.00");
-            Ingredient mayo = saveIng("Majonez", "0.00");
-            Ingredient ketchup = saveIng("Ketchup", "0.00");
-            Ingredient friesIng = saveIng("Ziemniaki", "0.00");
-            Ingredient colaIng = saveIng("Syrop Cola", "0.00");
+            if (products.isEmpty() || ingredients.isEmpty()) {
+                System.out.println("Brak produktów lub składników w bazie! Upewnij się, że data.sql został załadowany.");
+                return;
+            }
 
-            Product p1 = saveProduct("Classic Burger", "25.00", "Klasyczna wołowina z warzywami", "burger.png", catBurgers);
-            saveConfig(p1, bun, true, 1);
-            saveConfig(p1, beef, true, 2);
-            saveConfig(p1, cheese, true, 2);
-            saveConfig(p1, onion, true, 1);
-            saveConfig(p1, lettuce, true, 1);
-            saveConfig(p1, tomato, true, 1);
-            saveConfig(p1, bacon, false, 3);
-
-            Product p2 = saveProduct("Bacon BBQ Master", "32.00", "Podwójny bekon i ostry sos", "burger.png", catBurgers);
-            saveConfig(p2, bun, true, 1);
-            saveConfig(p2, beef, true, 3);
-            saveConfig(p2, cheese, true, 2);
-            saveConfig(p2, bacon, true, 5);
-            saveConfig(p2, spicySauce, true, 2);
-            saveConfig(p2, onion, true, 1);
-
-            Product p3 = saveProduct("Chicken Crunch", "22.00", "Chrupiący kurczak z majonezem", "burger.png", catBurgers);
-            saveConfig(p3, bun, true, 1);
-            saveConfig(p3, chicken, true, 2);
-            saveConfig(p3, lettuce, true, 1);
-            saveConfig(p3, mayo, true, 1);
-            saveConfig(p3, tomato, false, 1);
-
-            Product p4 = saveProduct("Vege Delight", "28.00", "100% roślinny, 100% smaku", "burger.png", catBurgers);
-            saveConfig(p4, bun, true, 1);
-            saveConfig(p4, vegePatty, true, 1);
-            saveConfig(p4, lettuce, true, 2);
-            saveConfig(p4, tomato, true, 2);
-            saveConfig(p4, cheese, false, 1);
-
-            Product p5 = saveProduct("Frytki Belgijskie", "12.00", "Grubo krojone, chrupiące", "burger.png", catSides);
-            saveConfig(p5, friesIng, true, 1);
-            saveConfig(p5, spicySauce, false, 2);
-            saveConfig(p5, mayo, false, 2);
-
-            Product p6 = saveProduct("Coca-Cola 0.5L", "8.00", "Zimna i orzeźwiająca", "burger.png", catDrinks);
-            saveConfig(p6, colaIng, true, 1);
-
-            System.out.println("Produkty utworzone.");
-
-            generateFakeOrders(List.of(p1, p2, p3, p4, p5, p6), List.of(bacon, cheese, onion));
+            generateFakeOrders(products, ingredients);
         } else {
-            System.out.println("Dane już istnieją w bazie. Pomijam inicjalizację.");
+            System.out.println("Zamówienia już istnieją. Pomijam generowanie.");
         }
-    }
-
-    private Ingredient saveIng(String name, String price) {
-        return ingredientRepo.save(new Ingredient(null, name, new BigDecimal(price)));
-    }
-
-    private Product saveProduct(String name, String price, String desc, String img, Category cat) {
-        Product p = new Product();
-        p.setName(name);
-        p.setBasePrice(new BigDecimal(price));
-        p.setDescription(desc);
-        p.setImageUrl(img);
-        p.setCategory(cat);
-        p.setAvailable(true);
-        p.setDeleted(false);
-        return productRepo.save(p);
-    }
-
-    private void saveConfig(Product p, Ingredient i, boolean isDefault, int maxQty) {
-        ProductIngredient pi = new ProductIngredient();
-        pi.setProduct(p);
-        pi.setIngredient(i);
-        pi.setDefault(isDefault);
-        pi.setDisplayOrder(1);
-        pi.setMaxQuantity(maxQty);
-        productIngredientRepo.save(pi);
     }
 
     private void generateFakeOrders(List<Product> products, List<Ingredient> extraIngredients) {
