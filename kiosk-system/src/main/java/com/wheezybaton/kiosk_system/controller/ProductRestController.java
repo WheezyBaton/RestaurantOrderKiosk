@@ -8,6 +8,7 @@ import com.wheezybaton.kiosk_system.model.Product;
 import com.wheezybaton.kiosk_system.repository.ProductRepository;
 import com.wheezybaton.kiosk_system.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,8 +30,9 @@ public class ProductRestController {
     private final ProductService productService;
 
     @GetMapping
-    @Operation(summary = "Pobierz listę produktów (Paginacja)", description = "Zwraca stronę produktów.")
-    public ResponseEntity<Page<ProductDto>> getAllProducts(Pageable pageable) {
+    @Operation(summary = "Pobierz listę produktów (Paginacja)")
+    public ResponseEntity<Page<ProductDto>> getAllProducts(
+            @org.springdoc.core.annotations.ParameterObject Pageable pageable) {
         Page<Product> productsPage = productRepo.findByDeletedFalse(pageable);
         return ResponseEntity.ok(productsPage.map(this::mapToDto));
     }
@@ -93,5 +95,14 @@ public class ProductRestController {
             dto.setIngredients(ingredientDtos);
         }
         return dto;
+    }
+
+    @GetMapping("/search")
+    @Operation(summary = "Wyszukaj produkty po nazwie", description = "Zwraca listę produktów pasujących do podanej nazwy.")
+    public ResponseEntity<List<ProductDto>> searchProducts(@RequestParam String query) {
+        List<Product> products = productRepo.findByDeletedFalse().stream()
+                .filter(p -> p.getName().toLowerCase().contains(query.toLowerCase()))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(products.stream().map(this::mapToDto).collect(Collectors.toList()));
     }
 }

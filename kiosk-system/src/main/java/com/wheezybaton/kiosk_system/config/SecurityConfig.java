@@ -27,7 +27,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/menu", "/configure", "/cart/**", "/order/**", "/select-type", "/checkout", "/order-success", "/board").permitAll()
                         .requestMatchers("/h2-console/**", "/images/**", "/css/**", "/js/**", "/uploads/**").permitAll()
-                        .requestMatchers("/api/v1/**").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/**").permitAll()
+                        .requestMatchers("/api/v1/**").hasRole("ADMIN")
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/kitchen/**").hasRole("KITCHEN")
