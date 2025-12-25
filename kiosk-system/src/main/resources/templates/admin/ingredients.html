@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8">
+    <title>Zarządzanie Składnikami</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body class="bg-light">
+    <div class="container py-5">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>🥕 Globalna Baza Składników</h2>
+        <div>
+          <a href="/admin" class="btn btn-outline-secondary me-2">Wróć do Dashboardu</a>
+          <a href="/admin/ingredients/add" class="btn btn-success">+ Nowy Składnik</a>
+        </div>
+      </div>
+      <div th:if="${param.error}" class="alert alert-danger">
+        Nie można usunąć składnika, ponieważ jest on przypisany do produktów! Najpierw usuń go z burgerów.
+      </div>
+      <div class="card shadow-sm">
+        <div class="card-body p-0">
+          <table class="table table-striped table-hover mb-0 align-middle">
+            <thead class="table-dark">
+            <tr>
+              <th>ID</th>
+              <th>Nazwa</th>
+              <th>Cena Bazowa (PLN)</th>
+              <th class="text-end">Akcje</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="ing : ${ingredients}">
+              <td th:text="${ing.id}">1</td>
+              <td class="fw-bold" th:text="${ing.name}">Ser</td>
+              <td th:text="${ing.price} + ' PLN'">2.00 PLN</td>
+              <td class="text-end">
+                <a th:href="@{'/admin/ingredients/edit/' + ${ing.id}}" class="btn btn-sm btn-primary">Edytuj</a>
+                <a th:href="@{'/admin/ingredients/delete/' + ${ing.id}}"
+                   class="btn btn-sm btn-danger"
+                   onclick="return confirm('Czy na pewno usunąć ten składnik globalnie?')">Usuń</a>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
