@@ -24,7 +24,10 @@ public class OrderItem {
     @JoinColumn(name = "product_id")
     private Product product;
 
+    @Column(nullable = false)
     private int quantity;
+
+    @Column(name = "price_at_purchase", nullable = false, precision = 10, scale = 2)
     private BigDecimal priceAtPurchase;
 
     @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL)

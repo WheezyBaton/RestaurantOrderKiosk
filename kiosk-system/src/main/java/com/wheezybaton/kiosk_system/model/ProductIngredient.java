@@ -24,9 +24,16 @@ public class ProductIngredient {
     @JoinColumn(name = "ingredient_id")
     private Ingredient ingredient;
 
+    @Column(nullable = false)
     private boolean isDefault;
+
+    @Column(nullable = false)
     private int displayOrder;
+
+    @Column(precision = 10, scale = 2)
     private BigDecimal customPrice;
+
+    @Column(nullable = false)
     private int maxQuantity = 1;
 
     public BigDecimal getEffectivePrice() {
