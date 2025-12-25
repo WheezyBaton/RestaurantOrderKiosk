@@ -79,7 +79,6 @@ public class AdminController {
             @RequestParam Long categoryId,
             @RequestParam(required = false) List<Long> ingredientIds,
             @RequestParam(required = false) List<Long> defaultIngredientIds,
-            @RequestParam(value = "isAvailable", defaultValue = "false") boolean isAvailable,
             HttpServletRequest request,
             Model model
     ) throws IOException {
@@ -89,23 +88,29 @@ public class AdminController {
             model.addAttribute("activeIngredients", new HashMap<Long, ProductIngredient>());
             return "admin/product-form";
         }
-        product.setAvailable(isAvailable);
+
         Category category = categoryRepo.findById(categoryId).orElseThrow();
         product.setCategory(category);
 
-        if (!multipartFile.isEmpty()) {
-            String fileName = multipartFile.getOriginalFilename();
-            Path uploadPath = Paths.get("./uploads");
-            if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
-            try (InputStream inputStream = multipartFile.getInputStream()) {
-                Files.copy(inputStream, uploadPath.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
-                product.setImageUrl(fileName);
+        if (product.getId() == null) {
+            product.setAvailable(false);
+
+            if (!multipartFile.isEmpty()) {
+                saveImage(product, multipartFile);
+            } else {
+                product.setImageUrl("placeholder.png");
             }
-        } else if (product.getId() == null) {
-            product.setImageUrl("placeholder.png");
         } else {
             Product existing = productRepo.findById(product.getId()).orElse(null);
-            if (existing != null) product.setImageUrl(existing.getImageUrl());
+            if (existing != null) {
+                product.setAvailable(existing.isAvailable());
+
+                if (!multipartFile.isEmpty()) {
+                    saveImage(product, multipartFile);
+                } else {
+                    product.setImageUrl(existing.getImageUrl());
+                }
+            }
         }
 
         Product savedProduct = productRepo.save(product);
@@ -148,6 +153,16 @@ public class AdminController {
             productIngredientRepo.saveAll(newConfigs);
         }
         return "redirect:/admin";
+    }
+
+    private void saveImage(Product product, MultipartFile multipartFile) throws IOException {
+        String fileName = multipartFile.getOriginalFilename();
+        Path uploadPath = Paths.get("./uploads");
+        if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
+        try (InputStream inputStream = multipartFile.getInputStream()) {
+            Files.copy(inputStream, uploadPath.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
+            product.setImageUrl(fileName);
+        }
     }
 
     @GetMapping("/products/delete/{id}")
