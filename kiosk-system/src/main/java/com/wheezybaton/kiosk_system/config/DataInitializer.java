@@ -26,17 +26,12 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
-        // SPRAWDZENIE: Czy baza zawiera już produkty?
-        // Dzięki temu po restarcie kontenera Docker (gdzie dane są trwałe)
-        // nie spróbujemy dodać tych samych rekordów ponownie.
         if (productRepo.count() == 0) {
             System.out.println("Baza jest pusta. Inicjalizacja danych startowych...");
 
-            // Usunięto deleteAll(), ponieważ sprawdzamy, czy baza jest pusta.
-
             Category catBurgers = new Category(null, "Burgery", "burger.png", null);
-            Category catSides = new Category(null, "Dodatki", "fries.png", null);
-            Category catDrinks = new Category(null, "Napoje", "drink.png", null);
+            Category catSides = new Category(null, "Dodatki", "burger.png", null);
+            Category catDrinks = new Category(null, "Napoje", "burger.png", null);
             categoryRepo.saveAll(List.of(catBurgers, catSides, catDrinks));
 
             Ingredient bun = saveIng("Bułka Brioche", "0.00");
@@ -55,7 +50,7 @@ public class DataInitializer implements CommandLineRunner {
             Ingredient friesIng = saveIng("Ziemniaki", "0.00");
             Ingredient colaIng = saveIng("Syrop Cola", "0.00");
 
-            Product p1 = saveProduct("Classic Burger", "25.00", "Klasyczna wołowina z warzywami", "classic.jpg", catBurgers);
+            Product p1 = saveProduct("Classic Burger", "25.00", "Klasyczna wołowina z warzywami", "burger.png", catBurgers);
             saveConfig(p1, bun, true, 1);
             saveConfig(p1, beef, true, 2);
             saveConfig(p1, cheese, true, 2);
@@ -64,7 +59,7 @@ public class DataInitializer implements CommandLineRunner {
             saveConfig(p1, tomato, true, 1);
             saveConfig(p1, bacon, false, 3);
 
-            Product p2 = saveProduct("Bacon BBQ Master", "32.00", "Podwójny bekon i ostry sos", "bacon.jpg", catBurgers);
+            Product p2 = saveProduct("Bacon BBQ Master", "32.00", "Podwójny bekon i ostry sos", "burger.png", catBurgers);
             saveConfig(p2, bun, true, 1);
             saveConfig(p2, beef, true, 3);
             saveConfig(p2, cheese, true, 2);
@@ -72,26 +67,26 @@ public class DataInitializer implements CommandLineRunner {
             saveConfig(p2, spicySauce, true, 2);
             saveConfig(p2, onion, true, 1);
 
-            Product p3 = saveProduct("Chicken Crunch", "22.00", "Chrupiący kurczak z majonezem", "chicken.jpg", catBurgers);
+            Product p3 = saveProduct("Chicken Crunch", "22.00", "Chrupiący kurczak z majonezem", "burger.png", catBurgers);
             saveConfig(p3, bun, true, 1);
             saveConfig(p3, chicken, true, 2);
             saveConfig(p3, lettuce, true, 1);
             saveConfig(p3, mayo, true, 1);
             saveConfig(p3, tomato, false, 1);
 
-            Product p4 = saveProduct("Vege Delight", "28.00", "100% roślinny, 100% smaku", "vege.jpg", catBurgers);
+            Product p4 = saveProduct("Vege Delight", "28.00", "100% roślinny, 100% smaku", "burger.png", catBurgers);
             saveConfig(p4, bun, true, 1);
             saveConfig(p4, vegePatty, true, 1);
             saveConfig(p4, lettuce, true, 2);
             saveConfig(p4, tomato, true, 2);
             saveConfig(p4, cheese, false, 1);
 
-            Product p5 = saveProduct("Frytki Belgijskie", "12.00", "Grubo krojone, chrupiące", "fries.jpg", catSides);
+            Product p5 = saveProduct("Frytki Belgijskie", "12.00", "Grubo krojone, chrupiące", "burger.png", catSides);
             saveConfig(p5, friesIng, true, 1);
             saveConfig(p5, spicySauce, false, 2);
             saveConfig(p5, mayo, false, 2);
 
-            Product p6 = saveProduct("Coca-Cola 0.5L", "8.00", "Zimna i orzeźwiająca", "cola.jpg", catDrinks);
+            Product p6 = saveProduct("Coca-Cola 0.5L", "8.00", "Zimna i orzeźwiająca", "burger.png", catDrinks);
             saveConfig(p6, colaIng, true, 1);
 
             System.out.println("Produkty utworzone.");
