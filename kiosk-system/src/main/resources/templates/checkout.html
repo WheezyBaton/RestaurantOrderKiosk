@@ -1,10 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-    <head>
-        <meta charset="UTF-8">
-        <title>Podsumowanie</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    </head>
+    <head th:replace="~{fragments/layout :: header('Podsumowanie')}"></head>
     <body class="bg-light">
         <div class="container py-5">
             <h1 class="mb-4 text-center">Podsumowanie Zamówienia</h1>
@@ -67,5 +63,7 @@
                 </div>
             </div>
         </div>
+        <footer th:replace="~{fragments/layout :: footer}"></footer>
+        <div th:replace="~{fragments/layout :: scripts}"></div>
     </body>
 </html>

@@ -1,9 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
     <head>
-        <meta charset="UTF-8">
-        <title>Konfiguracja Produktu</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <th:block th:insert="~{fragments/layout :: header('Konfiguracja Produktu')}"></th:block>
         <style>
             .qty-input {
                 width: 50px;
@@ -63,9 +61,9 @@
                                     <h2 th:text="${product.name}" class="mb-1">Burger</h2>
                                     <p class="text-muted small mb-2" th:text="${product.description}">Opis...</p>
                                     <h3 class="text-success fw-bold">
-                                                <span id="total-price-display"
-                                                      th:data-base-price="${product.basePrice}"
-                                                      th:text="${product.basePrice}">25.00</span> PLN
+                                                        <span id="total-price-display"
+                                                              th:data-base-price="${product.basePrice}"
+                                                              th:text="${product.basePrice}">25.00</span> PLN
                                     </h3>
                                 </div>
                             </div>
@@ -83,7 +81,7 @@
                                                 <div class="fw-bold fs-5" th:text="${conf.ingredient.name}">Składnik</div>
                                                 <span class="dynamic-badge"
                                                       th:data-unit-price="${conf.getEffectivePrice()}">
-                                                        </span>
+                                                                </span>
                                             </div>
                                             <div>
                                                 <div th:if="${conf.maxQuantity == 1}">
@@ -134,6 +132,8 @@
                 </div>
             </div>
         </div>
+        <footer th:replace="~{fragments/layout :: footer}"></footer>
+        <div th:replace="~{fragments/layout :: scripts}"></div>
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 const basePriceElement = document.getElementById('total-price-display');
