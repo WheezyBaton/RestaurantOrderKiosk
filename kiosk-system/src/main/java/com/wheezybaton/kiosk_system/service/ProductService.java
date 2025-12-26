@@ -4,9 +4,11 @@ import com.wheezybaton.kiosk_system.dto.CreateProductRequest;
 import com.wheezybaton.kiosk_system.exception.ResourceNotFoundException;
 import com.wheezybaton.kiosk_system.model.*;
 import com.wheezybaton.kiosk_system.repository.*;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +16,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Validated
 public class ProductService {
 
     private final ProductRepository productRepository;
@@ -53,7 +56,7 @@ public class ProductService {
     }
 
     @Transactional
-    public Product createProduct(CreateProductRequest request) {
+    public Product createProduct(@Valid CreateProductRequest request) {
         Product product = new Product();
         updateProductFromRequest(product, request);
         product.setAvailable(true);
@@ -65,7 +68,7 @@ public class ProductService {
     }
 
     @Transactional
-    public Product updateProduct(Long id, CreateProductRequest request) {
+    public Product updateProduct(Long id, @Valid CreateProductRequest request) {
         Product product = getProductById(id);
         updateProductFromRequest(product, request);
         Product savedProduct = productRepository.save(product);
