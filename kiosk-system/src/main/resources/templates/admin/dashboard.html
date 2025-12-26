@@ -2,22 +2,28 @@
 <html lang="pl" xmlns:th="http://www.thymeleaf.org">
     <head th:replace="~{fragments/layout :: header('Admin Dashboard')}"></head>
     <body class="bg-light">
-        <nav th:replace="~{fragments/layout :: navbar-admin}"></nav>
+    <nav th:replace="~{fragments/layout :: navbar-admin}"></nav>
         <div class="container">
             <div class="row mb-4 g-3">
                 <div class="col-md-4">
                     <div class="card text-white bg-primary h-100 shadow-sm">
                         <div class="card-body">
-                            <h5 class="card-title opacity-75">Zamówienia Dzisiaj</h5>
-                            <p class="card-text display-4 fw-bold" th:text="${todayOrders}">0</p>
+                            <h5 class="card-title opacity-75">Dzisiaj (Ilość / Przychód)</h5>
+                            <div class="d-flex align-items-baseline justify-content-between">
+                                <p class="card-text display-4 fw-bold mb-0" th:text="${todayOrders}">0</p>
+                                <span class="fs-4 text-white-50" th:text="${todayRevenue} + ' zł'">0.00 zł</span>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card text-white bg-success h-100 shadow-sm">
                         <div class="card-body">
-                            <h5 class="card-title opacity-75">Przychód (Miesiąc)</h5>
-                            <p class="card-text display-4 fw-bold" th:text="${monthlyRevenue} + ' zł'">0.00 zł</p>
+                            <h5 class="card-title opacity-75">Miesiąc (Przychód / Ilość)</h5>
+                            <div class="d-flex align-items-baseline justify-content-between">
+                                <p class="card-text display-4 fw-bold mb-0" th:text="${monthlyRevenue} + ' zł'">0.00 zł</p>
+                                <span class="fs-4 text-white-50" th:text="${monthlyOrders} + ' zam.'">0 zam.</span>
+                            </div>
                         </div>
                     </div>
                 </div>

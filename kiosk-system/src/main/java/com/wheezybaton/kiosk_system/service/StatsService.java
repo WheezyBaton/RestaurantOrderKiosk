@@ -101,6 +101,16 @@ public class StatsService {
         }
     }
 
+    public Long getMonthlyOrdersCount() {
+        String sql = "SELECT COUNT(*) FROM orders WHERE status != 'CANCELLED' AND EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM CURRENT_DATE)";
+        try {
+            Long count = jdbcTemplate.queryForObject(sql, Long.class);
+            return count != null ? count : 0L;
+        } catch (Exception e) {
+            return 0L;
+        }
+    }
+
     public Long getTodayOrdersCount() {
         String sql = "SELECT COUNT(*) FROM orders WHERE created_at >= CURRENT_DATE";
         try {
@@ -108,6 +118,16 @@ public class StatsService {
             return count != null ? count : 0L;
         } catch (Exception e) {
             return 0L;
+        }
+    }
+
+    public BigDecimal getTodayRevenue() {
+        String sql = "SELECT SUM(total_amount) FROM orders WHERE created_at >= CURRENT_DATE AND status != 'CANCELLED'";
+        try {
+            BigDecimal total = jdbcTemplate.queryForObject(sql, BigDecimal.class);
+            return total != null ? total : BigDecimal.ZERO;
+        } catch (Exception e) {
+            return BigDecimal.ZERO;
         }
     }
 }

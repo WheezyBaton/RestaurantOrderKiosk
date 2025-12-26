@@ -52,7 +52,10 @@ public class AdminController {
         model.addAttribute("salesStats", statsService.getSalesStats());
         model.addAttribute("totalRevenue", statsService.getTotalRevenue());
         model.addAttribute("monthlyRevenue", statsService.getMonthlyRevenue());
+        model.addAttribute("monthlyOrders", statsService.getMonthlyOrdersCount());
         model.addAttribute("todayOrders", statsService.getTodayOrdersCount());
+        model.addAttribute("todayRevenue", statsService.getTodayRevenue());
+
         return "admin/dashboard";
     }
 
