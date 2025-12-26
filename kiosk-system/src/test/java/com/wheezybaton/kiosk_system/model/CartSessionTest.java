@@ -27,11 +27,11 @@ class CartSessionTest {
         session.addItem(item2);
 
         assertEquals(2, session.getItems().size());
-        assertEquals(BigDecimal.valueOf(30), session.getTotalCartValue());
+        assertEquals(new BigDecimal("31.00"), session.getTotalCartValue());
 
         session.removeItem(item1.getId());
         assertEquals(1, session.getItems().size());
-        assertEquals(BigDecimal.valueOf(20), session.getTotalCartValue());
+        assertEquals(new BigDecimal("21.00"), session.getTotalCartValue());
 
         session.clear();
         assertTrue(session.getItems().isEmpty());

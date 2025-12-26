@@ -14,14 +14,29 @@ import java.util.UUID;
 @SessionScope
 @Data
 public class CartSession {
+    private static final BigDecimal PACKAGING_FEE = new BigDecimal("1.00");
 
     private List<CartItemDto> items = new ArrayList<>();
     private OrderType orderType = OrderType.EAT_IN;
 
     public BigDecimal getTotalCartValue() {
-        return items.stream()
+        if (items.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal sum = items.stream()
                 .map(CartItemDto::getTotalPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (this.orderType == OrderType.TAKE_AWAY) {
+            return sum.add(PACKAGING_FEE);
+        }
+
+        return sum;
+    }
+
+    public BigDecimal getPackagingFee() {
+        return this.orderType == OrderType.TAKE_AWAY ? PACKAGING_FEE : BigDecimal.ZERO;
     }
 
     public void addItem(CartItemDto item) {

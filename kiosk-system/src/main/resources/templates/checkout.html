@@ -51,6 +51,9 @@
                         </tbody>
                     </table>
                     <hr>
+                    <div class="d-flex justify-content-end mb-2" th:if="${cart.packagingFee.compareTo(T(java.math.BigDecimal).ZERO) > 0}">
+                        <h5>Opłata za opakowanie (Na wynos): <span class="text-muted" th:text="${cart.packagingFee} + ' PLN'">1.00 PLN</span></h5>
+                    </div>
                     <div class="d-flex justify-content-end mb-4">
                         <h3>Do zapłaty: <span class="text-success" th:text="${cart.totalCartValue} + ' PLN'">100.00 PLN</span></h3>
                     </div>
