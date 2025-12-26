@@ -9,9 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +22,11 @@ public class OrderService {
     private final ProductRepository productRepo;
     private final IngredientRepository ingredientRepo;
     private final CartSession cartSession;
+    private final AtomicInteger orderSequence = new AtomicInteger(0);
+
+    public int reserveNextOrderNumber() {
+        return orderSequence.updateAndGet(n -> (n >= 999) ? 1 : n + 1);
+    }
 
     @Transactional
     public Order placeOrder() {
@@ -34,8 +39,9 @@ public class OrderService {
         Order order = new Order();
         order.setTotalAmount(cartSession.getTotalCartValue());
         order.setStatus(OrderStatus.NEW);
-        Long countToday = orderRepo.countOrdersSince(LocalDate.now().atStartOfDay());
-        order.setDailyNumber(countToday.intValue() + 1);
+
+        order.setDailyNumber(reserveNextOrderNumber());
+
         order.setType(cartSession.getOrderType());
 
         for (CartItemDto dto : sessionItems) {
@@ -62,6 +68,7 @@ public class OrderService {
             }
             order.getItems().add(item);
         }
+
         Order savedOrder = orderRepo.save(order);
         cartSession.clear();
         return savedOrder;

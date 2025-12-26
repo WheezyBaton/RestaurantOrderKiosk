@@ -6,6 +6,7 @@ import com.wheezybaton.kiosk_system.model.Product;
 import com.wheezybaton.kiosk_system.repository.IngredientRepository;
 import com.wheezybaton.kiosk_system.repository.OrderRepository;
 import com.wheezybaton.kiosk_system.repository.ProductRepository;
+import com.wheezybaton.kiosk_system.service.OrderService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -31,6 +32,9 @@ class DataInitializerTest {
     @Mock
     private OrderRepository orderRepo;
 
+    @Mock
+    private OrderService orderService;
+
     @InjectMocks
     private DataInitializer dataInitializer;
 
@@ -46,9 +50,12 @@ class DataInitializerTest {
         mockIngredient.setPrice(BigDecimal.ONE);
         when(ingredientRepo.findAll()).thenReturn(List.of(mockIngredient));
 
+        when(orderService.reserveNextOrderNumber()).thenReturn(1);
+
         dataInitializer.run();
 
         verify(orderRepo, atLeastOnce()).save(any(Order.class));
+        verify(orderService, atLeastOnce()).reserveNextOrderNumber();
     }
 
     @Test

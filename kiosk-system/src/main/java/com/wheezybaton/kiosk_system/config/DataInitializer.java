@@ -2,6 +2,7 @@ package com.wheezybaton.kiosk_system.config;
 
 import com.wheezybaton.kiosk_system.model.*;
 import com.wheezybaton.kiosk_system.repository.*;
+import com.wheezybaton.kiosk_system.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -20,6 +21,7 @@ public class DataInitializer implements CommandLineRunner {
     private final ProductRepository productRepo;
     private final IngredientRepository ingredientRepo;
     private final OrderRepository orderRepo;
+    private final OrderService orderService;
 
     @Override
     @Transactional
@@ -47,7 +49,7 @@ public class DataInitializer implements CommandLineRunner {
 
         for (int i = 1; i <= ordersCount; i++) {
             Order order = new Order();
-            order.setDailyNumber(i);
+            order.setDailyNumber(orderService.reserveNextOrderNumber());
 
             int statusRoll = rand.nextInt(10);
             if (statusRoll < 6) order.setStatus(OrderStatus.COMPLETED);

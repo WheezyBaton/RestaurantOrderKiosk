@@ -12,7 +12,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -44,9 +43,7 @@ class OrderServiceTest {
         when(cartSession.getItems()).thenReturn(List.of(itemDto));
         when(cartSession.getTotalCartValue()).thenReturn(BigDecimal.TEN);
         when(cartSession.getOrderType()).thenReturn(OrderType.EAT_IN);
-        when(orderRepo.countOrdersSince(any(LocalDateTime.class))).thenReturn(5L);
         when(productRepo.getReferenceById(1L)).thenReturn(new Product());
-
         when(orderRepo.save(any(Order.class))).thenAnswer(inv -> {
             Order o = inv.getArgument(0);
             o.setId(100L);
@@ -56,7 +53,7 @@ class OrderServiceTest {
         Order result = orderService.placeOrder();
 
         assertNotNull(result);
-        assertEquals(6, result.getDailyNumber());
+        assertEquals(1, result.getDailyNumber());
         assertEquals(OrderStatus.NEW, result.getStatus());
         verify(cartSession).clear();
     }
