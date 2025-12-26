@@ -43,11 +43,11 @@ class StatsServiceIntegrationTest {
         item.setOrder(order);
         item.setProduct(burger);
         item.setQuantity(2);
-        item.setPriceAtPurchase(BigDecimal.valueOf(20));
+        item.setPriceAtPurchase(BigDecimal.valueOf(20)); 
 
         order.setItems(List.of(item));
         orderRepo.save(order);
-
+        
         List<SalesStatDto> stats = statsService.getSalesStats();
         
         assertThat(stats).isNotEmpty();

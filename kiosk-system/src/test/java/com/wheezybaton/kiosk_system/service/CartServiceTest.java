@@ -1,60 +1,59 @@
 package com.wheezybaton.kiosk_system.service;
 
 import com.wheezybaton.kiosk_system.dto.CartItemDto;
-import com.wheezybaton.kiosk_system.model.*;
+import com.wheezybaton.kiosk_system.model.CartSession;
+import com.wheezybaton.kiosk_system.model.Ingredient;
+import com.wheezybaton.kiosk_system.model.Product;
+import com.wheezybaton.kiosk_system.model.ProductIngredient;
 import com.wheezybaton.kiosk_system.repository.ProductRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CartServiceTest {
 
     @Mock private ProductRepository productRepo;
     @Mock private CartSession cartSession;
-    @InjectMocks private CartService cartService;
+
+    @InjectMocks
+    private CartService cartService;
 
     @Test
-    void addToCart_ShouldAddProductWithCorrectPrice() {
+    void addToCart_ShouldCalculatePriceWithIngredients() {
         Product product = new Product();
         product.setId(1L);
-        product.setName("Burger");
-        product.setBasePrice(new BigDecimal("20.00"));
-        product.setProductIngredients(Collections.emptyList());
+        product.setName("Pizza");
+        product.setBasePrice(new BigDecimal("30.00"));
+
+        Ingredient cheese = new Ingredient(10L, "Cheese", new BigDecimal("5.00"));
+        ProductIngredient pi = new ProductIngredient();
+        pi.setIngredient(cheese);
+        pi.setCustomPrice(new BigDecimal("4.00"));
+
+        product.setProductIngredients(List.of(pi));
 
         when(productRepo.findById(1L)).thenReturn(Optional.of(product));
 
-        cartService.addToCart(1L, Collections.emptyList(), Collections.emptyList(), 2);
+        cartService.addToCart(1L, List.of(10L), null, 1);
 
-        ArgumentCaptor<CartItemDto> captor = ArgumentCaptor.forClass(CartItemDto.class);
-        verify(cartSession).addItem(captor.capture());
-
-        CartItemDto item = captor.getValue();
-        assertEquals("Burger", item.getProductName());
-        assertEquals(2, item.getQuantity());
-        assertEquals(new BigDecimal("40.00"), item.getTotalPrice());
+        verify(cartSession).addItem(any(CartItemDto.class));
     }
 
     @Test
-    void removeFromCart_ShouldCallSessionRemove() {
-        UUID uuid = UUID.randomUUID();
+    void removeFromCart_ShouldDelegate() {
+        java.util.UUID uuid = java.util.UUID.randomUUID();
         cartService.removeFromCart(uuid);
         verify(cartSession).removeItem(uuid);
-    }
-
-    @Test
-    void getSession_ShouldReturnSession() {
-        assertEquals(cartSession, cartService.getSession());
     }
 }

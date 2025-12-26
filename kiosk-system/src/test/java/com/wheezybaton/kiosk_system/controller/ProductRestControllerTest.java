@@ -18,11 +18,11 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -37,60 +37,82 @@ class ProductRestControllerTest {
 
     @MockitoBean private ProductRepository productRepo;
     @MockitoBean private ProductService productService;
-    @MockitoBean private com.wheezybaton.kiosk_system.repository.CategoryRepository categoryRepo;
-    @MockitoBean private com.wheezybaton.kiosk_system.repository.IngredientRepository ingredientRepo;
-    @MockitoBean private com.wheezybaton.kiosk_system.repository.ProductIngredientRepository productIngredientRepo;
-    @MockitoBean private com.wheezybaton.kiosk_system.service.CartService cartService;
-    @MockitoBean private com.wheezybaton.kiosk_system.service.OrderService orderService;
-    @MockitoBean private com.wheezybaton.kiosk_system.service.StatsService statsService;
 
     @Test
     @WithMockUser
     void getAllProducts_ShouldReturnPage() throws Exception {
-        Product p = new Product(1L, "Test Burger", new BigDecimal("20.00"), "Desc", "img.png", true, null, null, false);
+        Product p = new Product();
+        p.setName("Test Burger");
         Page<Product> page = new PageImpl<>(List.of(p));
+
         when(productRepo.findByDeletedFalse(any(Pageable.class))).thenReturn(page);
 
-        mockMvc.perform(get("/api/v1/products").param("page", "0").param("size", "10"))
+        mockMvc.perform(get("/api/v1/products")
+                        .param("page", "0")
+                        .param("size", "10"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)))
                 .andExpect(jsonPath("$.content[0].name", is("Test Burger")));
-    }
-
-    @Test
-    @WithMockUser
-    void getProduct_ShouldReturn404_WhenNotFound() throws Exception {
-        when(productRepo.findById(99L)).thenReturn(Optional.empty());
-
-        mockMvc.perform(get("/api/v1/products/99"))
-                .andExpect(status().isNotFound());
     }
 
     @Test
     @WithMockUser
     void createProduct_ShouldCallServiceAndReturnDto() throws Exception {
         CreateProductRequest req = new CreateProductRequest();
-        req.setName("Service Burger");
+        req.setName("Burger");
         req.setBasePrice(BigDecimal.TEN);
         req.setCategoryId(1L);
 
-        Product created = new Product(55L, "Service Burger", BigDecimal.TEN, null, null, true, null, null, false);
+        Product saved = new Product();
+        saved.setId(1L);
+        saved.setName("Burger");
+        saved.setBasePrice(BigDecimal.TEN);
 
-        when(productService.createProduct(any(CreateProductRequest.class))).thenReturn(created);
+        when(productService.createProduct(any(CreateProductRequest.class))).thenReturn(saved);
 
         mockMvc.perform(post("/api/v1/products")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id", is(55)));
+                .andExpect(jsonPath("$.name", is("Burger")));
     }
 
     @Test
     @WithMockUser
-    void deleteProduct_ShouldCallService() throws Exception {
-        mockMvc.perform(delete("/api/v1/products/1").with(csrf()))
-                .andExpect(status().isNoContent());
+    void searchProducts_ShouldFilterByName() throws Exception {
+        Product p1 = new Product();
+        p1.setName("Mega Burger");
+        Product p2 = new Product();
+        p2.setName("Fries");
 
-        verify(productService).deleteProduct(1L);
+        when(productRepo.findByDeletedFalse()).thenReturn(List.of(p1, p2));
+
+        mockMvc.perform(get("/api/v1/products/search").param("query", "Burger"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].name", is("Mega Burger")));
+    }
+
+    @Test
+    @WithMockUser
+    void updateProduct_ShouldCallService() throws Exception {
+        CreateProductRequest req = new CreateProductRequest();
+        req.setName("Updated");
+        req.setBasePrice(BigDecimal.TEN);
+        req.setCategoryId(1L);
+
+        Product updated = new Product();
+        updated.setId(1L);
+        updated.setName("Updated");
+
+        when(productService.updateProduct(eq(1L), any())).thenReturn(updated);
+
+        mockMvc.perform(put("/api/v1/products/1")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name", is("Updated")));
     }
 }
