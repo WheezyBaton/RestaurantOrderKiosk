@@ -54,4 +54,15 @@ class ProductRepositoryTest {
         assertThat(page.getContent()).hasSize(2);
         assertThat(page.getTotalPages()).isEqualTo(3);
     }
+
+    @Test
+    void shouldSoftDeleteProduct() {
+        Product p = productRepo.save(new Product(null, "To Delete", BigDecimal.TEN, "", "", true, null, null, false));
+
+        p.setDeleted(true);
+        productRepo.save(p);
+
+        List<Product> active = productRepo.findByDeletedFalse();
+        assertThat(active).extracting(Product::getName).doesNotContain("To Delete");
+    }
 }
