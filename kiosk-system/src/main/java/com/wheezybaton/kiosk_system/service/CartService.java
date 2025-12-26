@@ -5,9 +5,11 @@ import com.wheezybaton.kiosk_system.model.CartSession;
 import com.wheezybaton.kiosk_system.model.Product;
 import com.wheezybaton.kiosk_system.model.ProductIngredient;
 import com.wheezybaton.kiosk_system.repository.ProductRepository;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -19,12 +21,17 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Validated
 public class CartService {
 
     private final ProductRepository productRepo;
     private final CartSession cartSession;
 
-    public void addToCart(Long productId, List<Long> addedIngredientIds, List<Long> removedIngredientIds, int quantity) {
+    public void addToCart(Long productId,
+                          List<Long> addedIngredientIds,
+                          List<Long> removedIngredientIds,
+                          @Min(value = 1, message = "Ilość musi wynosić minimum 1") int quantity) {
+
         Product product = productRepo.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
