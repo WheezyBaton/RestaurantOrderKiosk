@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
@@ -14,14 +15,17 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class StatsService {
 
     private final JdbcTemplate jdbcTemplate;
 
+    @Transactional
     public void createAuditTable() {
         jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS audit_log (id SERIAL PRIMARY KEY, action VARCHAR(255), timestamp TIMESTAMP)");
     }
 
+    @Transactional
     public void logEvent(String action) {
         try {
             createAuditTable();
@@ -59,6 +63,7 @@ public class StatsService {
         });
     }
 
+    @Transactional
     public byte[] getSalesCsv() {
         logEvent("EXPORT_CSV_GENERATED");
 

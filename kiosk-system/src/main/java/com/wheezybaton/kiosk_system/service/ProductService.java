@@ -13,7 +13,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(readOnly = true)
 public class ProductService {
 
     private final ProductRepository productRepository;
@@ -38,18 +38,21 @@ public class ProductService {
         return productRepository.findByDeletedFalse();
     }
 
+    @Transactional
     public void toggleProductAvailability(Long id) {
         Product product = getProductById(id);
         product.setAvailable(!product.isAvailable());
         productRepository.save(product);
     }
 
+    @Transactional
     public void deleteProduct(Long id) {
         Product product = getProductById(id);
         product.setDeleted(true);
         productRepository.save(product);
     }
 
+    @Transactional
     public Product createProduct(CreateProductRequest request) {
         Product product = new Product();
         updateProductFromRequest(product, request);
@@ -61,6 +64,7 @@ public class ProductService {
         return savedProduct;
     }
 
+    @Transactional
     public Product updateProduct(Long id, CreateProductRequest request) {
         Product product = getProductById(id);
         updateProductFromRequest(product, request);

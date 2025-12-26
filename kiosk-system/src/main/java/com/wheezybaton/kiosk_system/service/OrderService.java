@@ -15,6 +15,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class OrderService {
 
     private final OrderRepository orderRepo;
@@ -65,6 +66,7 @@ public class OrderService {
         cartSession.clear();
         return savedOrder;
     }
+
     public List<Order> getOrdersInProgress() {
         return orderRepo.findByStatusInOrderByCreatedAtAsc(
                 Arrays.asList(OrderStatus.NEW, OrderStatus.IN_PROGRESS)
