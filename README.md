@@ -51,7 +51,7 @@ The system is designed to streamline restaurant operations by connecting the fro
 * Docker & Docker Compose (Recommended)
 * **OR** Java JDK 17+ and Maven (for local manual run)
 
-### Option 1: Run with Docker (Recommended)
+Run with Docker
 This method sets up both the application and the PostgreSQL database automatically.
 
 1.  Clone the repository:
@@ -66,13 +66,6 @@ This method sets up both the application and the PostgreSQL database automatical
     ```
 
 3.  Access the application at `http://localhost:8080`.
-
-### Option 2: Run Manually (Local)
-1.  Ensure you have a PostgreSQL database running or rely on the default H2 in-memory database (configured in `application.yml`).
-2.  Run the app using Maven:
-    ```bash
-    ./mvnw spring-boot:run
-    ```
 
 ---
 
