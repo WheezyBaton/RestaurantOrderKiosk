@@ -106,7 +106,7 @@
                                     <div class="row align-items-center">
                                         <div class="col-auto" th:if="${product.imageUrl != null}">
                                             <img th:if="${!product.imageUrl.startsWith('http')}"
-                                                 th:src="@{'/images/uploads/' + ${product.imageUrl}}"
+                                                 th:src="@{'/uploads/' + ${product.imageUrl}}"
                                                  class="img-thumbnail" style="height: 80px; width: 80px; object-fit: cover;">
                                             <img th:if="${product.imageUrl.startsWith('http')}"
                                                  th:src="${product.imageUrl}"

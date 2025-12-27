@@ -50,7 +50,7 @@
                                 <div class="col-md-4 bg-white d-flex align-items-center justify-content-center p-3">
                                     <div style="height: 150px; width: 100%; overflow: hidden;" class="rounded border">
                                         <img th:if="${product.imageUrl != null and !product.imageUrl.startsWith('http')}"
-                                             th:src="@{'/images/uploads/' + ${product.imageUrl}}"
+                                             th:src="@{'/uploads/' + ${product.imageUrl}}"
                                              class="w-100 h-100 object-fit-cover">
                                         <img th:if="${product.imageUrl == null or product.imageUrl.startsWith('http')}"
                                              th:src="'https://placehold.co/400x300?text=' + ${product.name}"

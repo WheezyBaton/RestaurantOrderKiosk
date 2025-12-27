@@ -48,7 +48,7 @@
                     <div class="card h-100 product-card shadow-sm">
                         <div style="height: 200px; overflow: hidden;">
                             <img th:if="${product.imageUrl != null and !product.imageUrl.startsWith('http')}"
-                                 th:src="@{'/images/uploads/' + ${product.imageUrl}}"
+                                 th:src="@{'/uploads/' + ${product.imageUrl}}"
                                  class="card-img-top h-100 object-fit-cover" alt="Product Image">
 
                             <img th:if="${product.imageUrl != null and product.imageUrl.startsWith('http')}"
