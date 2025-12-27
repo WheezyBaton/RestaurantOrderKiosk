@@ -11,6 +11,7 @@ import com.wheezybaton.kiosk_system.service.ProductService;
 import com.wheezybaton.kiosk_system.service.StatsService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Controller
 @RequestMapping("/admin")
 @RequiredArgsConstructor
@@ -61,7 +63,9 @@ public class AdminController {
 
     @GetMapping("/products/toggle/{id}")
     public String toggleAvailability(@PathVariable Long id) {
+        log.debug("Request to toggle availability for product ID: {}", id);
         productService.toggleProductAvailability(id);
+        log.info("Availability toggled for product ID: {}", id);
         return "redirect:/admin";
     }
 
@@ -71,6 +75,7 @@ public class AdminController {
         model.addAttribute("categories", categoryRepo.findAll());
         model.addAttribute("allIngredients", ingredientRepo.findAll());
         model.addAttribute("activeIngredients", new HashMap<Long, ProductIngredient>());
+
         return "admin/product-form";
     }
 
@@ -86,7 +91,10 @@ public class AdminController {
             HttpServletRequest request,
             Model model
     ) throws IOException {
+        log.debug("Attempting to save product: {}", product.getName());
+
         if (bindingResult.hasErrors()) {
+            log.warn("Validation failed for product save request: {}", bindingResult.getAllErrors());
             model.addAttribute("categories", categoryRepo.findAll());
             model.addAttribute("allIngredients", ingredientRepo.findAll());
             model.addAttribute("activeIngredients", new HashMap<Long, ProductIngredient>());
@@ -97,6 +105,7 @@ public class AdminController {
         product.setCategory(category);
 
         if (product.getId() == null) {
+            log.debug("Creating new product entity...");
             product.setAvailable(false);
             if (!multipartFile.isEmpty()) {
                 saveImage(product, multipartFile);
@@ -104,6 +113,7 @@ public class AdminController {
                 product.setImageUrl("placeholder.png");
             }
         } else {
+            log.debug("Updating existing product entity ID: {}", product.getId());
             Product existing = productRepo.findById(product.getId()).orElse(null);
             if (existing != null) {
                 product.setAvailable(existing.isAvailable());
@@ -112,21 +122,26 @@ public class AdminController {
                 } else {
                     product.setImageUrl(existing.getImageUrl());
                 }
+            } else {
+                log.error("Attempted to update non-existent product ID: {}", product.getId());
             }
         }
 
         Product savedProduct = productRepo.save(product);
+        log.info("Product entity saved. ID: {}, Name: {}", savedProduct.getId(), savedProduct.getName());
 
         List<ProductIngredient> currentConfigs = productIngredientRepo.findAll().stream()
                 .filter(pi -> pi.getProduct().getId().equals(savedProduct.getId()))
                 .collect(Collectors.toList());
 
         if (!currentConfigs.isEmpty()) {
+            log.debug("Clearing {} existing ingredient configurations for product ID: {}", currentConfigs.size(), savedProduct.getId());
             productIngredientRepo.deleteAll(currentConfigs);
             productIngredientRepo.flush();
         }
 
         if (ingredientIds != null) {
+            log.debug("Processing {} new ingredient configurations...", ingredientIds.size());
             List<ProductIngredient> newConfigs = new ArrayList<>();
             int displayOrder = 1;
 
@@ -150,35 +165,61 @@ public class AdminController {
                 } else {
                     config.setMaxQuantity(1);
                 }
+
+                log.trace("Added ingredient config: ID {}, Default: {}, Price: {}", ingId, isDefault, config.getCustomPrice());
                 newConfigs.add(config);
             }
             productIngredientRepo.saveAll(newConfigs);
+            log.info("Ingredients updated for product ID: {}", savedProduct.getId());
         }
         return "redirect:/admin";
     }
 
     private void saveImage(Product product, MultipartFile multipartFile) throws IOException {
         String fileName = multipartFile.getOriginalFilename();
+        log.debug("Processing image upload: {}", fileName);
+
         Path uploadPath = Paths.get("./uploads");
-        if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
+        if (!Files.exists(uploadPath)) {
+            log.debug("Creating upload directory: {}", uploadPath.toAbsolutePath());
+            Files.createDirectories(uploadPath);
+        }
+
         try (InputStream inputStream = multipartFile.getInputStream()) {
             Files.copy(inputStream, uploadPath.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
             product.setImageUrl(fileName);
+            log.info("Image successfully saved: {}", fileName);
+        } catch (IOException e) {
+            log.error("Failed to save image file: {}", fileName, e);
+            throw e;
         }
     }
 
     @GetMapping("/products/delete/{id}")
     public String deleteProduct(@PathVariable Long id) {
-        Product product = productRepo.findById(id).orElseThrow();
+        log.debug("Request to delete product ID: {}", id);
+
+        Product product = productRepo.findById(id).orElseThrow(() -> {
+            log.error("Cannot delete. Product not found ID: {}", id);
+            return new RuntimeException("Product not found");
+        });
+
         product.setDeleted(true);
         productRepo.save(product);
+
+        log.info("Product ID: {} marked as deleted (soft delete).", id);
         return "redirect:/admin";
     }
 
     @GetMapping("/report/export")
     public ResponseEntity<Resource> downloadReport() {
+        log.info("Request received to export sales report (CSV).");
+
         byte[] data = statsService.getSalesCsv();
         ByteArrayResource resource = new ByteArrayResource(data);
+
+        log.debug("Sales report generated. Size: {} bytes", data.length);
+
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"raport_sprzedazy.csv\"")
                 .contentType(MediaType.parseMediaType("text/csv"))
@@ -188,8 +229,13 @@ public class AdminController {
 
     @GetMapping("/products/edit/{id}")
     public String showEditForm(@PathVariable Long id, Model model) {
+        log.debug("Loading edit form for product ID: {}", id);
+
         Product product = productRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Nie znaleziono produktu o ID: " + id));
+                .orElseThrow(() -> {
+                    log.error("Edit failed. Product not found with ID: {}", id);
+                    return new RuntimeException("Product not found with ID: " + id);
+                });
 
         model.addAttribute("product", product);
         model.addAttribute("categories", categoryRepo.findAll());
@@ -206,6 +252,7 @@ public class AdminController {
         }
         model.addAttribute("activeIngredients", activeIngredients);
 
+        log.debug("Edit form loaded for product: {}", product.getName());
         return "admin/product-form";
     }
 }

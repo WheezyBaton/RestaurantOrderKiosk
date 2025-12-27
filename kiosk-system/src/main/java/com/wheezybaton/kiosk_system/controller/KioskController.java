@@ -10,6 +10,7 @@ import com.wheezybaton.kiosk_system.service.OrderService;
 import com.wheezybaton.kiosk_system.service.ProductService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +21,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.*;
 
+@Slf4j
 @Controller
 @RequiredArgsConstructor
 public class KioskController {
@@ -35,12 +37,14 @@ public class KioskController {
 
     @PostMapping("/select-type")
     public String selectOrderType(@RequestParam OrderType type) {
+        log.info("User selected order type: {}", type);
         cartService.getSession().setOrderType(type);
         return "redirect:/menu";
     }
 
     @GetMapping("/menu")
     public String showMenu(Model model) {
+        log.debug("Loading menu page. Current cart items: {}", cartService.getSession().getItems().size());
         model.addAttribute("products", productService.getAvailableProducts());
         model.addAttribute("cart", cartService.getSession());
         return "menu";
@@ -59,6 +63,7 @@ public class KioskController {
         int mainQuantity = 1;
 
         if (cartItemId != null) {
+            log.debug("Loading existing item configuration from cart: {}", cartItemId);
             CartItemDto item = cartService.getCartItem(cartItemId);
             if (item != null) {
                 mainQuantity = item.getQuantity();
@@ -100,7 +105,10 @@ public class KioskController {
             @RequestParam(required = false) UUID cartItemId,
             HttpServletRequest request
     ) {
+        log.debug("Processing product configuration. ProductID: {}, Quantity: {}", productId, quantity);
+
         if (cartItemId != null) {
+            log.debug("Removing previous version of item {} before update.", cartItemId);
             cartService.removeFromCart(cartItemId);
         }
 
@@ -118,7 +126,9 @@ public class KioskController {
                 if (paramValue.equals("on")) selectedQty = 1;
                 else try {
                     selectedQty = Integer.parseInt(paramValue);
-                } catch (NumberFormatException e) {}
+                } catch (NumberFormatException e) {
+                    log.warn("Failed to parse quantity for ingredient ID {}: {}", ingId, paramValue);
+                }
             }
 
             int defaultQty = config.isDefault() ? 1 : 0;
@@ -134,6 +144,9 @@ public class KioskController {
             }
         }
 
+        log.info("Adding/Updating cart item. Product: {}, Added Ingredients: {}, Removed Ingredients: {}",
+                product.getName(), addedIds, removedIds);
+
         cartService.addToCart(productId, addedIds, removedIds, quantity);
 
         if (cartItemId != null) {
@@ -144,6 +157,7 @@ public class KioskController {
 
     @PostMapping("/cart/remove/{itemId}")
     public String removeCartItem(@PathVariable UUID itemId, HttpServletRequest request) {
+        log.info("Request to remove item from cart: {}", itemId);
         cartService.removeFromCart(itemId);
         String referer = request.getHeader("Referer");
         return "redirect:" + (referer != null ? referer : "/checkout");
@@ -151,6 +165,7 @@ public class KioskController {
 
     @PostMapping("/cart/clear")
     public String clearCart() {
+        log.info("User requested to clear the entire cart.");
         cartService.getSession().clear();
         return "redirect:/";
     }
@@ -158,6 +173,7 @@ public class KioskController {
     @GetMapping("/checkout")
     public String showCheckout(Model model) {
         if (cartService.getSession().getItems().isEmpty()) {
+            log.debug("Cart is empty, redirecting from checkout to menu.");
             return "redirect:/menu";
         }
         model.addAttribute("cart", cartService.getSession());
@@ -166,11 +182,14 @@ public class KioskController {
 
     @PostMapping("/order/pay")
     public String payAndOrder(RedirectAttributes redirectAttributes) {
+        log.info("Initiating payment and order placement process.");
         try {
             Order order = orderService.placeOrder();
+            log.info("Order placed successfully. Daily Number: {}", order.getDailyNumber());
             redirectAttributes.addFlashAttribute("orderNumber", order.getDailyNumber());
             return "redirect:/order-success";
         } catch (Exception e) {
+            log.error("Order placement failed: {}", e.getMessage(), e);
             return "redirect:/menu";
         }
     }
@@ -178,6 +197,7 @@ public class KioskController {
     @GetMapping("/order-success")
     public String showSuccess(Model model) {
         if (!model.containsAttribute("orderNumber")) {
+            log.warn("Access to success page without order number. Redirecting to welcome.");
             return "redirect:/";
         }
         return "success";

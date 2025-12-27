@@ -7,6 +7,7 @@ import com.wheezybaton.kiosk_system.model.ProductIngredient;
 import com.wheezybaton.kiosk_system.repository.ProductRepository;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -18,6 +19,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -30,10 +32,16 @@ public class CartService {
     public void addToCart(Long productId,
                           List<Long> addedIngredientIds,
                           List<Long> removedIngredientIds,
-                          @Min(value = 1, message = "Ilość musi wynosić minimum 1") int quantity) {
+                          @Min(value = 1, message = "Quantity must be at least 1") int quantity) {
+
+        log.debug("Request to add to cart -> ProductID: {}, Quantity: {}, AddedIngredients: {}, RemovedIngredients: {}",
+                productId, quantity, addedIngredientIds, removedIngredientIds);
 
         Product product = productRepo.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> {
+                    log.error("Failed to add to cart. Product not found with ID: {}", productId);
+                    return new RuntimeException("Product not found");
+                });
 
         Map<Long, ProductIngredient> configMap = product.getProductIngredients().stream()
                 .collect(Collectors.toMap(pi -> pi.getIngredient().getId(), pi -> pi));
@@ -74,10 +82,13 @@ public class CartService {
         item.setRemovedIngredientIds(removedIngredientIds != null ? removedIngredientIds : new ArrayList<>());
 
         cartSession.addItem(item);
-        System.out.println("Dodano do koszyka: " + item.getProductName() + " | Ilość: " + quantity + " | Cena jedn: " + finalUnitPrice);
+
+        log.info("Added to cart: {} | Quantity: {} | Unit Price: {} | Total Price: {}",
+                item.getProductName(), quantity, finalUnitPrice, item.getTotalPrice());
     }
 
     public void removeFromCart(UUID itemId) {
+        log.debug("Removing cart item with ID: {}", itemId);
         cartSession.removeItem(itemId);
     }
 
@@ -86,6 +97,7 @@ public class CartService {
     }
 
     public CartItemDto getCartItem(UUID itemId) {
+        log.debug("Retrieving cart item details for ID: {}", itemId);
         return cartSession.getItem(itemId);
     }
 }
