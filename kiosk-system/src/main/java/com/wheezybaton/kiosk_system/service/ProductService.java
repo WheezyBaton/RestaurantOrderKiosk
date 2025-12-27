@@ -7,6 +7,8 @@ import com.wheezybaton.kiosk_system.repository.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -31,6 +33,11 @@ public class ProductService {
         return productRepository.findByDeletedFalse();
     }
 
+    public Page<Product> getAllProducts(Pageable pageable) {
+        log.debug("Retrieving all non-deleted products with pagination: {}", pageable);
+        return productRepository.findByDeletedFalse(pageable);
+    }
+
     public Product getProductById(Long id) {
         log.debug("Fetching product with ID: {}", id);
         return productRepository.findById(id)
@@ -38,6 +45,13 @@ public class ProductService {
                     log.error("Product not found with ID: {}", id);
                     return new ResourceNotFoundException("Product not found with id: " + id);
                 });
+    }
+
+    public List<Product> searchProducts(String query) {
+        log.debug("Searching for products with query: '{}'", query);
+        return productRepository.findByDeletedFalse().stream()
+                .filter(p -> p.getName().toLowerCase().contains(query.toLowerCase()))
+                .toList();
     }
 
     public List<Product> getAvailableProducts() {
@@ -102,6 +116,27 @@ public class ProductService {
 
         log.info("Successfully updated product ID: {}", id);
         return savedProduct;
+    }
+
+    @Transactional
+    public Product saveProductEntity(Product product) {
+        log.debug("Saving product entity directly (Admin Legacy). ID: {}", product.getId());
+        return productRepository.save(product);
+    }
+
+    @Transactional
+    public void updateProductIngredients(Product product, List<ProductIngredient> newIngredients) {
+        log.debug("Updating ingredients for product ID: {}. New count: {}", product.getId(), newIngredients.size());
+
+        if (product.getId() != null) {
+            if (product.getProductIngredients() != null && !product.getProductIngredients().isEmpty()) {
+                productIngredientRepository.deleteAll(product.getProductIngredients());
+                productIngredientRepository.flush();
+            }
+        }
+
+        productIngredientRepository.saveAll(newIngredients);
+        log.info("Ingredients updated successfully for product ID: {}", product.getId());
     }
 
     private void updateProductFromRequest(Product product, CreateProductRequest request) {

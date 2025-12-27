@@ -1,7 +1,7 @@
 package com.wheezybaton.kiosk_system.controller;
 
 import com.wheezybaton.kiosk_system.model.Ingredient;
-import com.wheezybaton.kiosk_system.repository.IngredientRepository;
+import com.wheezybaton.kiosk_system.service.IngredientService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -26,12 +26,12 @@ class IngredientControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private IngredientRepository ingredientRepo;
+    private IngredientService ingredientService;
 
     @Test
     @WithMockUser(roles = "ADMIN")
     void shouldListIngredients() throws Exception {
-        when(ingredientRepo.findAll()).thenReturn(List.of(new Ingredient()));
+        when(ingredientService.getAllIngredients()).thenReturn(List.of(new Ingredient()));
 
         mockMvc.perform(get("/admin/ingredients"))
                 .andExpect(status().isOk())
@@ -42,6 +42,8 @@ class IngredientControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void shouldSaveIngredient() throws Exception {
+        when(ingredientService.saveIngredient(any(Ingredient.class))).thenAnswer(i -> i.getArguments()[0]);
+
         mockMvc.perform(post("/admin/ingredients/save")
                         .with(csrf())
                         .param("name", "Bacon")
@@ -49,7 +51,7 @@ class IngredientControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/admin/ingredients"));
 
-        verify(ingredientRepo).save(any(Ingredient.class));
+        verify(ingredientService).saveIngredient(any(Ingredient.class));
     }
 
     @Test
@@ -59,6 +61,6 @@ class IngredientControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/admin/ingredients"));
 
-        verify(ingredientRepo).deleteById(1L);
+        verify(ingredientService).deleteIngredient(1L);
     }
 }

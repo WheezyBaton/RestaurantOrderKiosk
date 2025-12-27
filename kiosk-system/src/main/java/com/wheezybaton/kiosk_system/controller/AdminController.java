@@ -3,32 +3,33 @@ package com.wheezybaton.kiosk_system.controller;
 import com.wheezybaton.kiosk_system.model.Category;
 import com.wheezybaton.kiosk_system.model.Product;
 import com.wheezybaton.kiosk_system.model.ProductIngredient;
-import com.wheezybaton.kiosk_system.repository.CategoryRepository;
-import com.wheezybaton.kiosk_system.repository.IngredientRepository;
-import com.wheezybaton.kiosk_system.repository.ProductIngredientRepository;
-import com.wheezybaton.kiosk_system.repository.ProductRepository;
+import com.wheezybaton.kiosk_system.service.CategoryService;
+import com.wheezybaton.kiosk_system.service.IngredientService;
 import com.wheezybaton.kiosk_system.service.ProductService;
 import com.wheezybaton.kiosk_system.service.StatsService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.transaction.annotation.Transactional;
-import jakarta.validation.Valid;
-import org.springframework.validation.BindingResult;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -41,16 +42,14 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AdminController {
 
-    private final ProductRepository productRepo;
     private final ProductService productService;
-    private final CategoryRepository categoryRepo;
-    private final IngredientRepository ingredientRepo;
-    private final ProductIngredientRepository productIngredientRepo;
+    private final CategoryService categoryService;
+    private final IngredientService ingredientService;
     private final StatsService statsService;
 
     @GetMapping
     public String dashboard(Model model) {
-        model.addAttribute("products", productRepo.findByDeletedFalseOrderByIdAsc());
+        model.addAttribute("products", productService.getAllProducts());
         model.addAttribute("salesStats", statsService.getSalesStats());
         model.addAttribute("totalRevenue", statsService.getTotalRevenue());
         model.addAttribute("monthlyRevenue", statsService.getMonthlyRevenue());
@@ -72,8 +71,8 @@ public class AdminController {
     @GetMapping("/products/add")
     public String showAddForm(Model model) {
         model.addAttribute("product", new Product());
-        model.addAttribute("categories", categoryRepo.findAll());
-        model.addAttribute("allIngredients", ingredientRepo.findAll());
+        model.addAttribute("categories", categoryService.getAllCategories());
+        model.addAttribute("allIngredients", ingredientService.getAllIngredients());
         model.addAttribute("activeIngredients", new HashMap<Long, ProductIngredient>());
 
         return "admin/product-form";
@@ -95,13 +94,16 @@ public class AdminController {
 
         if (bindingResult.hasErrors()) {
             log.warn("Validation failed for product save request: {}", bindingResult.getAllErrors());
-            model.addAttribute("categories", categoryRepo.findAll());
-            model.addAttribute("allIngredients", ingredientRepo.findAll());
+            model.addAttribute("categories", categoryService.getAllCategories());
+            model.addAttribute("allIngredients", ingredientService.getAllIngredients());
             model.addAttribute("activeIngredients", new HashMap<Long, ProductIngredient>());
             return "admin/product-form";
         }
 
-        Category category = categoryRepo.findById(categoryId).orElseThrow();
+        Category category = categoryService.getAllCategories().stream()
+                .filter(c -> c.getId().equals(categoryId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Category not found"));
         product.setCategory(category);
 
         if (product.getId() == null) {
@@ -114,7 +116,7 @@ public class AdminController {
             }
         } else {
             log.debug("Updating existing product entity ID: {}", product.getId());
-            Product existing = productRepo.findById(product.getId()).orElse(null);
+            Product existing = productService.getProductById(product.getId());
             if (existing != null) {
                 product.setAvailable(existing.isAvailable());
                 if (!multipartFile.isEmpty()) {
@@ -127,18 +129,8 @@ public class AdminController {
             }
         }
 
-        Product savedProduct = productRepo.save(product);
+        Product savedProduct = productService.saveProductEntity(product);
         log.info("Product entity saved. ID: {}, Name: {}", savedProduct.getId(), savedProduct.getName());
-
-        List<ProductIngredient> currentConfigs = productIngredientRepo.findAll().stream()
-                .filter(pi -> pi.getProduct().getId().equals(savedProduct.getId()))
-                .collect(Collectors.toList());
-
-        if (!currentConfigs.isEmpty()) {
-            log.debug("Clearing {} existing ingredient configurations for product ID: {}", currentConfigs.size(), savedProduct.getId());
-            productIngredientRepo.deleteAll(currentConfigs);
-            productIngredientRepo.flush();
-        }
 
         if (ingredientIds != null) {
             log.debug("Processing {} new ingredient configurations...", ingredientIds.size());
@@ -148,7 +140,7 @@ public class AdminController {
             for (Long ingId : ingredientIds) {
                 ProductIngredient config = new ProductIngredient();
                 config.setProduct(savedProduct);
-                config.setIngredient(ingredientRepo.findById(ingId).orElseThrow());
+                config.setIngredient(ingredientService.getIngredientById(ingId));
 
                 boolean isDefault = defaultIngredientIds != null && defaultIngredientIds.contains(ingId);
                 config.setDefault(isDefault);
@@ -166,10 +158,11 @@ public class AdminController {
                     config.setMaxQuantity(1);
                 }
 
-                log.trace("Added ingredient config: ID {}, Default: {}, Price: {}", ingId, isDefault, config.getCustomPrice());
                 newConfigs.add(config);
             }
-            productIngredientRepo.saveAll(newConfigs);
+
+            productService.updateProductIngredients(savedProduct, newConfigs);
+
             log.info("Ingredients updated for product ID: {}", savedProduct.getId());
         }
         return "redirect:/admin";
@@ -198,16 +191,7 @@ public class AdminController {
     @GetMapping("/products/delete/{id}")
     public String deleteProduct(@PathVariable Long id) {
         log.debug("Request to delete product ID: {}", id);
-
-        Product product = productRepo.findById(id).orElseThrow(() -> {
-            log.error("Cannot delete. Product not found ID: {}", id);
-            return new RuntimeException("Product not found");
-        });
-
-        product.setDeleted(true);
-        productRepo.save(product);
-
-        log.info("Product ID: {} marked as deleted (soft delete).", id);
+        productService.deleteProduct(id);
         return "redirect:/admin";
     }
 
@@ -231,15 +215,11 @@ public class AdminController {
     public String showEditForm(@PathVariable Long id, Model model) {
         log.debug("Loading edit form for product ID: {}", id);
 
-        Product product = productRepo.findById(id)
-                .orElseThrow(() -> {
-                    log.error("Edit failed. Product not found with ID: {}", id);
-                    return new RuntimeException("Product not found with ID: " + id);
-                });
+        Product product = productService.getProductById(id);
 
         model.addAttribute("product", product);
-        model.addAttribute("categories", categoryRepo.findAll());
-        model.addAttribute("allIngredients", ingredientRepo.findAll());
+        model.addAttribute("categories", categoryService.getAllCategories());
+        model.addAttribute("allIngredients", ingredientService.getAllIngredients());
 
         Map<Long, ProductIngredient> activeIngredients = new HashMap<>();
         if (product.getProductIngredients() != null) {

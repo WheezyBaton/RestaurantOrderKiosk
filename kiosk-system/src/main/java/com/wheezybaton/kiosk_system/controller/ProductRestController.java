@@ -5,7 +5,6 @@ import com.wheezybaton.kiosk_system.dto.ProductDto;
 import com.wheezybaton.kiosk_system.dto.ProductIngredientDto;
 import com.wheezybaton.kiosk_system.exception.ResourceNotFoundException;
 import com.wheezybaton.kiosk_system.model.Product;
-import com.wheezybaton.kiosk_system.repository.ProductRepository;
 import com.wheezybaton.kiosk_system.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,7 +26,6 @@ import java.util.stream.Collectors;
 @Tag(name = "Produkty", description = "Zarządzanie produktami i ich konfiguracją")
 public class ProductRestController {
 
-    private final ProductRepository productRepo;
     private final ProductService productService;
 
     @GetMapping
@@ -37,7 +35,7 @@ public class ProductRestController {
 
         log.debug("REST request to retrieve all products (paginated). Pageable: {}", pageable);
 
-        Page<Product> productsPage = productRepo.findByDeletedFalse(pageable);
+        Page<Product> productsPage = productService.getAllProducts(pageable);
 
         log.debug("Retrieved {} products for the current page.", productsPage.getNumberOfElements());
         return ResponseEntity.ok(productsPage.map(this::mapToDto));
@@ -48,17 +46,15 @@ public class ProductRestController {
     public ResponseEntity<ProductDto> getProduct(@PathVariable Long id) {
         log.debug("REST request to retrieve product details for ID: {}", id);
 
-        return productRepo.findById(id)
-                .filter(p -> !p.isDeleted())
-                .map(this::mapToDto)
-                .map(dto -> {
-                    log.debug("Product found: {}", dto.getName());
-                    return ResponseEntity.ok(dto);
-                })
-                .orElseThrow(() -> {
-                    log.error("Product with ID {} not found or is deleted.", id);
-                    return new ResourceNotFoundException("Produkt o ID " + id + " nie istnieje");
-                });
+        Product product = productService.getProductById(id);
+
+        if (product.isDeleted()) {
+            log.error("Product with ID {} is marked as deleted.", id);
+            throw new ResourceNotFoundException("Produkt o ID " + id + " nie istnieje");
+        }
+
+        log.debug("Product found: {}", product.getName());
+        return ResponseEntity.ok(mapToDto(product));
     }
 
     @PostMapping
@@ -130,9 +126,7 @@ public class ProductRestController {
     public ResponseEntity<List<ProductDto>> searchProducts(@RequestParam String query) {
         log.debug("REST request to search products with query: '{}'", query);
 
-        List<Product> products = productRepo.findByDeletedFalse().stream()
-                .filter(p -> p.getName().toLowerCase().contains(query.toLowerCase()))
-                .collect(Collectors.toList());
+        List<Product> products = productService.searchProducts(query);
 
         log.debug("Found {} products matching query: '{}'", products.size(), query);
         return ResponseEntity.ok(products.stream().map(this::mapToDto).collect(Collectors.toList()));

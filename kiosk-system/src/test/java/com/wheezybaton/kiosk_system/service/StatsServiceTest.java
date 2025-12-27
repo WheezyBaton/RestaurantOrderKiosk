@@ -55,7 +55,7 @@ class StatsServiceTest {
         byte[] csvBytes = statsService.getSalesCsv();
         String csvContent = new String(csvBytes);
 
-        assertTrue(csvContent.contains("Nazwa Produktu"));
+        assertTrue(csvContent.contains("Product Name"));
         assertTrue(csvContent.contains("Burger"));
         assertTrue(csvContent.contains("50.00"));
     }
