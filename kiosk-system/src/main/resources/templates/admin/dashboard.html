@@ -61,7 +61,7 @@
                             <tr th:each="product : ${products}">
                                 <td th:text="${product.id}">1</td>
                                 <td>
-                                    <img th:src="@{'/uploads/' + ${product.imageUrl}}" class="rounded"
+                                    <img th:src="@{'/images/uploads/' + ${product.imageUrl}}" class="rounded"
                                          style="width: 50px; height: 50px; object-fit: cover;"
                                          onerror="this.src='https://placehold.co/50x50?text=Food'">
                                 </td>

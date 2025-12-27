@@ -36,3 +36,12 @@ server:
   port: 8080
   tomcat:
     max-part-count: 100
+
+logging:
+  file:
+    name: logs/kiosk-application.log
+  level:
+    root: INFO
+    com.wheezybaton.kiosk_system: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: INFO

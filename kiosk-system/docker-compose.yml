@@ -28,6 +28,7 @@ services:
       - SPRING_SQL_INIT_PLATFORM=postgresql
     volumes:
       - ./uploads:/app/uploads
+      - ./logs:/app/logs
 
 volumes:
   db_data:
