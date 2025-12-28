@@ -1,5 +1,6 @@
 package com.wheezybaton.kiosk_system.controller;
 
+import com.wheezybaton.kiosk_system.dto.CartItemDto;
 import com.wheezybaton.kiosk_system.model.*;
 import com.wheezybaton.kiosk_system.repository.CategoryRepository;
 import com.wheezybaton.kiosk_system.service.CartService;
@@ -12,12 +13,13 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -99,5 +101,144 @@ class KioskControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/order-success"))
                 .andExpect(flash().attribute("orderNumber", 123));
+    }
+
+    @Test
+    @WithMockUser
+    void configureProduct_ShouldLoadConfigFromCart_WhenCartItemIdProvided() throws Exception {
+        Long productId = 1L;
+        UUID cartItemId = UUID.randomUUID();
+
+        Product product = new Product();
+        product.setId(productId);
+        product.setName("Configurable Burger");
+
+        Ingredient cheese = new Ingredient(); cheese.setId(10L); cheese.setName("Cheese");
+        Ingredient onion = new Ingredient(); onion.setId(20L); onion.setName("Onion");
+
+        ProductIngredient piCheese = new ProductIngredient();
+        piCheese.setIngredient(cheese);
+        piCheese.setDefault(true);
+
+        ProductIngredient piOnion = new ProductIngredient();
+        piOnion.setIngredient(onion);
+        piOnion.setDefault(false);
+
+        product.setProductIngredients(List.of(piCheese, piOnion));
+
+        CartItemDto cartItem = new CartItemDto();
+        cartItem.setId(cartItemId);
+        cartItem.setProductId(productId);
+        cartItem.setQuantity(5);
+        cartItem.setRemovedIngredientIds(List.of(10L));
+        cartItem.setAddedIngredientIds(List.of(20L));
+
+        when(productService.getProductById(productId)).thenReturn(product);
+        when(cartService.getCartItem(cartItemId)).thenReturn(cartItem);
+
+        mockMvc.perform(get("/configure")
+                        .param("productId", productId.toString())
+                        .param("cartItemId", cartItemId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("cartItemId", cartItemId))
+                .andExpect(model().attribute("mainQuantity", 5))
+                .andExpect(model().attribute("ingredientQuantities", org.hamcrest.Matchers.hasEntry(10L, 0)))
+                .andExpect(model().attribute("ingredientQuantities", org.hamcrest.Matchers.hasEntry(20L, 1)));
+    }
+
+    @Test
+    @WithMockUser
+    void addToCart_ShouldRemoveOldItemAndRedirectToCheckout_WhenUpdating() throws Exception {
+        Long productId = 1L;
+        UUID oldCartItemId = UUID.randomUUID();
+        Product product = new Product();
+        product.setId(productId);
+        product.setBasePrice(BigDecimal.TEN);
+        product.setProductIngredients(Collections.emptyList());
+
+        when(productService.getProductById(productId)).thenReturn(product);
+
+        mockMvc.perform(post("/cart/add-custom")
+                        .with(csrf())
+                        .param("productId", productId.toString())
+                        .param("quantity", "1")
+                        .param("cartItemId", oldCartItemId.toString()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(view().name("redirect:/checkout"));
+
+        verify(cartService).removeFromCart(oldCartItemId);
+        verify(cartService).addToCart(eq(productId), anyList(), anyList(), eq(1));
+    }
+
+    @Test
+    @WithMockUser
+    void addToCart_ShouldIgnoreInvalidIngredientQuantity() throws Exception {
+        Long productId = 1L;
+        Product product = new Product();
+        product.setId(productId);
+        product.setBasePrice(BigDecimal.TEN);
+
+        Ingredient ing = new Ingredient();
+        ing.setId(999L);
+        ProductIngredient pi = new ProductIngredient();
+        pi.setIngredient(ing);
+        pi.setDefault(false);
+        product.setProductIngredients(List.of(pi));
+
+        when(productService.getProductById(productId)).thenReturn(product);
+
+        mockMvc.perform(post("/cart/add-custom")
+                        .with(csrf())
+                        .param("productId", productId.toString())
+                        .param("quantity", "1")
+                        .param("qty_999", "invalid_number"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(view().name("redirect:/menu"));
+
+        verify(cartService).addToCart(eq(productId), anyList(), anyList(), eq(1));
+    }
+
+    @Test
+    @WithMockUser
+    void clearCart_ShouldClearSessionAndRedirect() throws Exception {
+        CartSession mockSession = mock(CartSession.class);
+        when(cartService.getSession()).thenReturn(mockSession);
+
+        mockMvc.perform(post("/cart/clear")
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(view().name("redirect:/"));
+
+        verify(mockSession).clear();
+    }
+
+    @Test
+    @WithMockUser
+    void showCheckout_ShouldRedirectToMenu_WhenCartIsEmpty() throws Exception {
+        CartSession mockSession = mock(CartSession.class);
+        when(cartService.getSession()).thenReturn(mockSession);
+        when(mockSession.getItems()).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/checkout"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(view().name("redirect:/menu"));
+    }
+
+    @Test
+    @WithMockUser
+    void showSuccess_ShouldRedirectToWelcome_WhenNoOrderNumber() throws Exception {
+        mockMvc.perform(get("/order-success"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(view().name("redirect:/"));
+    }
+
+    @Test
+    @WithMockUser
+    void showSuccess_ShouldShowPage_WhenOrderNumberExists() throws Exception {
+        mockMvc.perform(get("/order-success")
+                        .flashAttr("orderNumber", 123L))
+                .andExpect(status().isOk())
+                .andExpect(view().name("success"))
+                .andExpect(model().attributeExists("orderNumber"));
     }
 }

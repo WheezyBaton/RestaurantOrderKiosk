@@ -10,6 +10,7 @@ import com.wheezybaton.kiosk_system.service.IngredientService;
 import com.wheezybaton.kiosk_system.service.ProductService;
 import com.wheezybaton.kiosk_system.service.StatsService;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
@@ -201,5 +202,151 @@ class AdminControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/product-form"))
                 .andExpect(model().attribute("product", hasProperty("name", is("Edit Me"))));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    void saveProduct_NewProductNoImage_ShouldSetPlaceholder() throws Exception {
+        Category category = new Category();
+        category.setId(1L);
+        when(categoryService.getAllCategories()).thenReturn(List.of(category));
+        when(productService.saveProductEntity(any(Product.class))).thenAnswer(i -> {
+            Product p = i.getArgument(0);
+            p.setId(10L);
+            return p;
+        });
+
+        MockMultipartFile emptyFile = new MockMultipartFile("imageFile", "", "image/png", new byte[0]);
+
+        mockMvc.perform(multipart("/admin/products/save")
+                        .file(emptyFile)
+                        .param("name", "New Product")
+                        .param("basePrice", "10.00")
+                        .param("categoryId", "1")
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection());
+
+        ArgumentCaptor<Product> productCaptor = ArgumentCaptor.forClass(Product.class);
+        verify(productService).saveProductEntity(productCaptor.capture());
+
+        Product captured = productCaptor.getValue();
+        org.junit.jupiter.api.Assertions.assertEquals("placeholder.png", captured.getImageUrl());
+        org.junit.jupiter.api.Assertions.assertFalse(captured.isAvailable());
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    void saveProduct_UpdateExisting_ShouldPreserveFields_WhenNoNewImage() throws Exception {
+        Long productId = 5L;
+        Category category = new Category();
+        category.setId(1L);
+
+        Product existingProduct = new Product();
+        existingProduct.setId(productId);
+        existingProduct.setName("Old Name");
+        existingProduct.setAvailable(true);
+        existingProduct.setImageUrl("original.png");
+
+        when(categoryService.getAllCategories()).thenReturn(List.of(category));
+        when(productService.getProductById(productId)).thenReturn(existingProduct);
+        when(productService.saveProductEntity(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+
+        MockMultipartFile emptyFile = new MockMultipartFile("imageFile", "", "image/png", new byte[0]);
+
+        mockMvc.perform(multipart("/admin/products/save")
+                        .file(emptyFile)
+                        .param("id", productId.toString())
+                        .param("name", "New Name")
+                        .param("basePrice", "20.00")
+                        .param("categoryId", "1")
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection());
+
+        ArgumentCaptor<Product> productCaptor = ArgumentCaptor.forClass(Product.class);
+        verify(productService).saveProductEntity(productCaptor.capture());
+
+        Product captured = productCaptor.getValue();
+        org.junit.jupiter.api.Assertions.assertEquals("New Name", captured.getName());
+        org.junit.jupiter.api.Assertions.assertTrue(captured.isAvailable());
+        org.junit.jupiter.api.Assertions.assertEquals("original.png", captured.getImageUrl());
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    void saveProduct_UpdateNonExistent_ShouldLogAndProceed() throws Exception {
+        Long nonExistentId = 999L;
+        Category category = new Category();
+        category.setId(1L);
+
+        when(categoryService.getAllCategories()).thenReturn(List.of(category));
+        when(productService.getProductById(nonExistentId)).thenReturn(null);
+
+        when(productService.saveProductEntity(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+
+        MockMultipartFile emptyFile = new MockMultipartFile("imageFile", "", "image/png", new byte[0]);
+
+        mockMvc.perform(multipart("/admin/products/save")
+                        .file(emptyFile)
+                        .param("id", nonExistentId.toString())
+                        .param("name", "Ghost Product")
+                        .param("basePrice", "5.00")
+                        .param("categoryId", "1")
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection());
+
+        verify(productService).saveProductEntity(any(Product.class));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    void saveProduct_ImageSaveError_ShouldThrowException() throws Exception {
+        Category category = new Category();
+        category.setId(1L);
+        when(categoryService.getAllCategories()).thenReturn(List.of(category));
+
+        MockMultipartFile badFile = org.mockito.Mockito.spy(new MockMultipartFile("imageFile", "test.jpg", "image/jpeg", "content".getBytes()));
+        org.mockito.Mockito.doThrow(new java.io.IOException("Disk error")).when(badFile).getInputStream();
+
+        mockMvc.perform(multipart("/admin/products/save")
+                        .file(badFile)
+                        .param("name", "Product")
+                        .param("basePrice", "10.00")
+                        .param("categoryId", "1")
+                        .with(csrf()))
+                .andExpect(result -> org.junit.jupiter.api.Assertions.assertTrue(
+                        result.getResolvedException() instanceof java.io.IOException));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    void showEditForm_WithIngredients_ShouldMapActiveIngredients() throws Exception {
+        Long productId = 1L;
+        Product product = new Product();
+        product.setId(productId);
+        product.setName("Product With Ingredients");
+
+        Ingredient ing1 = new Ingredient(); ing1.setId(101L); ing1.setName("Lettuce");
+        Ingredient ing2 = new Ingredient(); ing2.setId(102L); ing2.setName("Tomato");
+
+        com.wheezybaton.kiosk_system.model.ProductIngredient pi1 = new com.wheezybaton.kiosk_system.model.ProductIngredient();
+        pi1.setIngredient(ing1);
+        pi1.setDefault(true);
+
+        com.wheezybaton.kiosk_system.model.ProductIngredient pi2 = new com.wheezybaton.kiosk_system.model.ProductIngredient();
+        pi2.setIngredient(ing2);
+        pi2.setDefault(false);
+
+        product.setProductIngredients(List.of(pi1, pi2));
+
+        when(productService.getProductById(productId)).thenReturn(product);
+        when(categoryService.getAllCategories()).thenReturn(Collections.emptyList());
+        when(ingredientService.getAllIngredients()).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/admin/products/edit/{id}", productId))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeExists("activeIngredients"))
+                // Sprawdzamy czy mapa zawiera odpowiednie klucze i wartości
+                .andExpect(model().attribute("activeIngredients", org.hamcrest.Matchers.hasEntry(101L, pi1)))
+                .andExpect(model().attribute("activeIngredients", org.hamcrest.Matchers.hasEntry(102L, pi2)));
     }
 }

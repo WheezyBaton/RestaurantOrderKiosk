@@ -15,6 +15,7 @@ import org.springframework.jdbc.core.RowMapper;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -169,5 +171,109 @@ class StatsServiceTest {
         List<OrderHistorySummaryDto> result = statsService.getGroupedStatusHistory();
 
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    void getSalesStatsGroupedByMonth_ShouldAggregateDuplicateProductsInSameMonth() {
+        doAnswer(invocation -> {
+            RowCallbackHandler rch = invocation.getArgument(1);
+
+            ResultSet rs1 = mockResultRow("2023-11-01 10:00:00", "Burger", 1, new BigDecimal("10.00"));
+            rch.processRow(rs1);
+
+            ResultSet rs2 = mockResultRow("2023-11-02 12:00:00", "Burger", 2, new BigDecimal("10.00"));
+            rch.processRow(rs2);
+
+            return null;
+        }).when(jdbcTemplate).query(anyString(), any(RowCallbackHandler.class));
+
+        Map<String, List<SalesStatDto>> result = statsService.getSalesStatsGroupedByMonth();
+
+        assertNotNull(result);
+        assertTrue(result.containsKey("2023-11"));
+
+        List<SalesStatDto> stats = result.get("2023-11");
+        assertEquals(1, stats.size(), "Powinien być tylko 1 wpis dla Burgera (zaggregoowany)");
+
+        SalesStatDto burgerStat = stats.get(0);
+        assertEquals("Burger", burgerStat.getProductName());
+        assertEquals(3L, burgerStat.getTotalQuantity(), "Ilość powinna być zsumowana (1 + 2)");
+        assertEquals(new BigDecimal("30.00"), burgerStat.getTotalRevenue(), "Przychód powinien być zsumowany (10 + 20)");
+    }
+
+    private ResultSet mockResultRow(String dateStr, String productName, int qty, BigDecimal price) throws SQLException {
+        ResultSet rs = mock(ResultSet.class);
+        when(rs.getTimestamp("created_at")).thenReturn(Timestamp.valueOf(dateStr));
+        when(rs.getString("product_name")).thenReturn(productName);
+        when(rs.getInt("quantity")).thenReturn(qty);
+        when(rs.getBigDecimal("price_at_purchase")).thenReturn(price);
+        return rs;
+    }
+
+    @Test
+    void getMonthlyRevenue_ShouldReturnZero_OnDbException() {
+        when(jdbcTemplate.queryForObject(contains("EXTRACT(MONTH FROM created_at)"), eq(BigDecimal.class)))
+                .thenThrow(new RuntimeException("Database error"));
+
+        BigDecimal result = statsService.getMonthlyRevenue();
+
+        assertEquals(BigDecimal.ZERO, result);
+    }
+
+    @Test
+    void getTodayOrdersCount_ShouldReturnZero_OnDbException() {
+        when(jdbcTemplate.queryForObject(contains("COUNT(*) FROM orders"), eq(Long.class)))
+                .thenThrow(new RuntimeException("Database down"));
+
+        Long result = statsService.getTodayOrdersCount();
+
+        assertEquals(0L, result);
+    }
+
+    @Test
+    void getTodayRevenue_ShouldReturnZero_OnDbException() {
+        when(jdbcTemplate.queryForObject(contains("SUM(total_amount)"), eq(BigDecimal.class)))
+                .thenThrow(new RuntimeException("Connection timeout"));
+
+        BigDecimal result = statsService.getTodayRevenue();
+
+        assertEquals(BigDecimal.ZERO, result);
+    }
+
+    @Test
+    void getMonthlyRevenue_ShouldReturnAmount() {
+        when(jdbcTemplate.queryForObject(contains("EXTRACT(MONTH FROM created_at)"), eq(BigDecimal.class)))
+                .thenReturn(new BigDecimal("1500.50"));
+
+        BigDecimal result = statsService.getMonthlyRevenue();
+        assertEquals(new BigDecimal("1500.50"), result);
+    }
+
+    @Test
+    void getTodayOrdersCount_ShouldReturnCount() {
+        when(jdbcTemplate.queryForObject(contains("COUNT(*)"), eq(Long.class)))
+                .thenReturn(123L);
+
+        assertEquals(123L, statsService.getTodayOrdersCount());
+    }
+
+    @Test
+    void getTodayRevenue_ShouldReturnAmount() {
+        when(jdbcTemplate.queryForObject(contains("SUM(total_amount)"), eq(BigDecimal.class)))
+                .thenReturn(new BigDecimal("500.00"));
+
+        assertEquals(new BigDecimal("500.00"), statsService.getTodayRevenue());
+    }
+
+    @Test
+    void getGroupedStatusHistory_ShouldReturnSortedList() {
+        OrderStatusHistoryDto dto1 = new OrderStatusHistoryDto(1L, "NEW", "PREPARING", LocalDateTime.now());
+        when(jdbcTemplate.query(contains("SELECT order_id"), any(RowMapper.class)))
+                .thenReturn(List.of(dto1));
+
+        List<OrderHistorySummaryDto> result = statsService.getGroupedStatusHistory();
+
+        assertFalse(result.isEmpty());
+        assertEquals(1L, result.get(0).getOrderId());
     }
 }

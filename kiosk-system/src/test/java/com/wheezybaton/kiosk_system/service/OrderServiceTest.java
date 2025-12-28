@@ -119,4 +119,46 @@ class OrderServiceTest {
         verify(orderRepo).save(order);
         verify(statsService).logStatusChange(1L, OrderStatus.READY, OrderStatus.COMPLETED);
     }
+
+    @Test
+    void getOrdersReady_ShouldReturnOrdersWithStatusReady() {
+        Order readyOrder = new Order();
+        readyOrder.setId(100L);
+        readyOrder.setStatus(OrderStatus.READY);
+
+        when(orderRepo.findByStatus(OrderStatus.READY)).thenReturn(List.of(readyOrder));
+
+        List<Order> result = orderService.getOrdersReady();
+
+        assertEquals(1, result.size());
+        assertEquals(OrderStatus.READY, result.get(0).getStatus());
+        verify(orderRepo).findByStatus(OrderStatus.READY);
+    }
+
+    @Test
+    void promoteOrderStatus_ShouldThrowException_WhenOrderNotFound() {
+        Long nonExistentId = 999L;
+        when(orderRepo.findById(nonExistentId)).thenReturn(Optional.empty());
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                orderService.promoteOrderStatus(nonExistentId)
+        );
+
+        assertEquals("Order not found with ID: 999", ex.getMessage());
+    }
+
+    @Test
+    void promoteOrderStatus_ShouldSkipLogic_WhenStatusIsTerminal () {
+        Long orderId = 5L;
+        Order order = new Order();
+        order.setId(orderId);
+        order.setStatus(OrderStatus.COMPLETED);
+
+        when(orderRepo.findById(orderId)).thenReturn(Optional.of(order));
+
+        orderService.promoteOrderStatus(orderId);
+
+        verify(orderRepo, never()).save(any());
+        assertEquals(OrderStatus.COMPLETED, order.getStatus());
+    }
 }
