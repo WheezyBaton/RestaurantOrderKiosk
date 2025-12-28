@@ -21,15 +21,15 @@ INSERT INTO ingredient (name, price) VALUES ('Syrop Cola', 0.00);
 INSERT INTO product (name, base_price, description, image_url, category_id, available, deleted)
 VALUES ('Classic Burger', 25.00, 'Klasyczna wołowina z warzywami', 'burger.png', (SELECT id FROM category WHERE name='Burgery'), true, false);
 INSERT INTO product (name, base_price, description, image_url, category_id, available, deleted)
-VALUES ('Bacon BBQ Master', 32.00, 'Podwójny bekon i ostry sos', 'burger.png', (SELECT id FROM category WHERE name='Burgery'), true, false);
+VALUES ('Bacon BBQ Master', 32.00, 'Podwójny bekon i ostry sos', 'bbq-bacon-burger.png', (SELECT id FROM category WHERE name='Burgery'), true, false);
 INSERT INTO product (name, base_price, description, image_url, category_id, available, deleted)
-VALUES ('Chicken Crunch', 22.00, 'Chrupiący kurczak z majonezem', 'burger.png', (SELECT id FROM category WHERE name='Burgery'), true, false);
+VALUES ('Chicken Crunch', 22.00, 'Chrupiący kurczak z majonezem', 'chicken-crunch.png', (SELECT id FROM category WHERE name='Burgery'), true, false);
 INSERT INTO product (name, base_price, description, image_url, category_id, available, deleted)
-VALUES ('Vege Delight', 28.00, '100% roślinny, 100% smaku', 'burger.png', (SELECT id FROM category WHERE name='Burgery'), true, false);
+VALUES ('Vege Delight', 28.00, '100% roślinny, 100% smaku', 'vege-delight.png', (SELECT id FROM category WHERE name='Burgery'), true, false);
 INSERT INTO product (name, base_price, description, image_url, category_id, available, deleted)
-VALUES ('Frytki Belgijskie', 12.00, 'Grubo krojone, chrupiące', 'burger.png', (SELECT id FROM category WHERE name='Dodatki'), true, false);
+VALUES ('Frytki Belgijskie', 12.00, 'Grubo krojone, chrupiące', 'fries.png', (SELECT id FROM category WHERE name='Dodatki'), true, false);
 INSERT INTO product (name, base_price, description, image_url, category_id, available, deleted)
-VALUES ('Coca-Cola 0.5L', 8.00, 'Zimna i orzeźwiająca', 'burger.png', (SELECT id FROM category WHERE name='Napoje'), true, false);
+VALUES ('Coca-Cola 0.5L', 8.00, 'Zimna i orzeźwiająca', 'cola.png', (SELECT id FROM category WHERE name='Napoje'), true, false);
 
 INSERT INTO product_ingredient (product_id, ingredient_id, is_default, display_order, max_quantity) VALUES ((SELECT id FROM product WHERE name='Classic Burger'), (SELECT id FROM ingredient WHERE name='Bułka Brioche'), true, 1, 1);
 INSERT INTO product_ingredient (product_id, ingredient_id, is_default, display_order, max_quantity) VALUES ((SELECT id FROM product WHERE name='Classic Burger'), (SELECT id FROM ingredient WHERE name='Wołowina 100%'), true, 2, 2);

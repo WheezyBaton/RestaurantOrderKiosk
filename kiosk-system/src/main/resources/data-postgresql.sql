@@ -19,11 +19,11 @@ INSERT INTO ingredient (id, name, price) VALUES (14, 'Ziemniaki', 0.00) ON CONFL
 INSERT INTO ingredient (id, name, price) VALUES (15, 'Syrop Cola', 0.00) ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO product (id, name, base_price, description, image_url, category_id, available, deleted) VALUES (1, 'Classic Burger', 25.00, 'Klasyczna wołowina z warzywami', 'burger.png', 1, true, false) ON CONFLICT (id) DO NOTHING;
-INSERT INTO product (id, name, base_price, description, image_url, category_id, available, deleted) VALUES (2, 'Bacon BBQ Master', 32.00, 'Podwójny bekon i ostry sos', 'burger.png', 1, true, false) ON CONFLICT (id) DO NOTHING;
-INSERT INTO product (id, name, base_price, description, image_url, category_id, available, deleted) VALUES (3, 'Chicken Crunch', 22.00, 'Chrupiący kurczak z majonezem', 'burger.png', 1, true, false) ON CONFLICT (id) DO NOTHING;
-INSERT INTO product (id, name, base_price, description, image_url, category_id, available, deleted) VALUES (4, 'Vege Delight', 28.00, '100% roślinny, 100% smaku', 'burger.png', 1, true, false) ON CONFLICT (id) DO NOTHING;
-INSERT INTO product (id, name, base_price, description, image_url, category_id, available, deleted) VALUES (5, 'Frytki Belgijskie', 12.00, 'Grubo krojone, chrupiące', 'burger.png', 2, true, false) ON CONFLICT (id) DO NOTHING;
-INSERT INTO product (id, name, base_price, description, image_url, category_id, available, deleted) VALUES (6, 'Coca-Cola 0.5L', 8.00, 'Zimna i orzeźwiająca', 'burger.png', 3, true, false) ON CONFLICT (id) DO NOTHING;
+INSERT INTO product (id, name, base_price, description, image_url, category_id, available, deleted) VALUES (2, 'Bacon BBQ Master', 32.00, 'Podwójny bekon i ostry sos', 'bbq-bacon-burger.png', 1, true, false) ON CONFLICT (id) DO NOTHING;
+INSERT INTO product (id, name, base_price, description, image_url, category_id, available, deleted) VALUES (3, 'Chicken Crunch', 22.00, 'Chrupiący kurczak z majonezem', 'chicken-crunch.png', 1, true, false) ON CONFLICT (id) DO NOTHING;
+INSERT INTO product (id, name, base_price, description, image_url, category_id, available, deleted) VALUES (4, 'Vege Delight', 28.00, '100% roślinny, 100% smaku', 'vege-delight.png', 1, true, false) ON CONFLICT (id) DO NOTHING;
+INSERT INTO product (id, name, base_price, description, image_url, category_id, available, deleted) VALUES (5, 'Frytki Belgijskie', 12.00, 'Grubo krojone, chrupiące', 'fries.png', 2, true, false) ON CONFLICT (id) DO NOTHING;
+INSERT INTO product (id, name, base_price, description, image_url, category_id, available, deleted) VALUES (6, 'Coca-Cola 0.5L', 8.00, 'Zimna i orzeźwiająca', 'cola.png', 3, true, false) ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO product_ingredient (product_id, ingredient_id, is_default, display_order, max_quantity) VALUES (1, 1, true, 1, 1) ON CONFLICT DO NOTHING;
 INSERT INTO product_ingredient (product_id, ingredient_id, is_default, display_order, max_quantity) VALUES (1, 2, true, 2, 2) ON CONFLICT DO NOTHING;
