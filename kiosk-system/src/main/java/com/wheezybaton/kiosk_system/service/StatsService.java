@@ -15,8 +15,8 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.List;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -72,6 +72,58 @@ public class StatsService {
 
         log.debug("Retrieved sales statistics for {} distinct products.", stats.size());
         return stats;
+    }
+
+    public Map<String, List<SalesStatDto>> getSalesStatsGroupedByMonth() {
+        log.debug("Fetching sales statistics grouped by month...");
+
+        String sql = """
+            SELECT 
+                o.created_at, 
+                p.name AS product_name, 
+                oi.quantity, 
+                oi.price_at_purchase 
+            FROM order_item oi
+            JOIN product p ON oi.product_id = p.id
+            JOIN orders o ON oi.order_id = o.id
+            WHERE o.status != 'CANCELLED'
+        """;
+
+        Map<String, Map<String, SalesStatDto>> rawMap = new HashMap<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+
+        jdbcTemplate.query(sql, (rs) -> {
+            LocalDateTime createdAt = rs.getTimestamp("created_at").toLocalDateTime();
+            String month = createdAt.format(formatter);
+            String productName = rs.getString("product_name");
+            int quantity = rs.getInt("quantity");
+            BigDecimal price = rs.getBigDecimal("price_at_purchase");
+            BigDecimal revenue = price.multiply(BigDecimal.valueOf(quantity));
+
+            rawMap.computeIfAbsent(month, k -> new HashMap<>())
+                    .compute(productName, (k, v) -> {
+                        if (v == null) {
+                            return new SalesStatDto(productName, (long) quantity, revenue);
+                        } else {
+                            v.setTotalQuantity(v.getTotalQuantity() + quantity);
+                            v.setTotalRevenue(v.getTotalRevenue().add(revenue));
+                            return v;
+                        }
+                    });
+        });
+
+        Map<String, List<SalesStatDto>> result = new LinkedHashMap<>();
+
+        rawMap.entrySet().stream()
+                .sorted(Map.Entry.<String, Map<String, SalesStatDto>>comparingByKey().reversed())
+                .forEach(entry -> {
+                    List<SalesStatDto> stats = new ArrayList<>(entry.getValue().values());
+                    stats.sort(Comparator.comparing(SalesStatDto::getTotalRevenue).reversed());
+                    result.put(entry.getKey(), stats);
+                });
+
+        log.debug("Aggregated sales stats for {} months.", result.size());
+        return result;
     }
 
     @Transactional

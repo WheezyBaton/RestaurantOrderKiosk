@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS order_status_history (id SERIAL PRIMARY KEY, order_id BIGINT NOT NULL, old_status VARCHAR(50), new_status VARCHAR(50) NOT NULL, changed_at TIMESTAMP NOT NULL);
 
 INSERT INTO category (id, name, image_url) VALUES (1, 'Burgery', 'burger.png') ON CONFLICT (id) DO NOTHING;
-INSERT INTO category (id, name, image_url) VALUES (2, 'Dodatki', 'burger.png') ON CONFLICT (id) DO NOTHING;
-INSERT INTO category (id, name, image_url) VALUES (3, 'Napoje', 'burger.png') ON CONFLICT (id) DO NOTHING;
+INSERT INTO category (id, name, image_url) VALUES (2, 'Dodatki', 'fries.png') ON CONFLICT (id) DO NOTHING;
+INSERT INTO category (id, name, image_url) VALUES (3, 'Napoje', 'cola.png') ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO ingredient (id, name, price) VALUES (1, 'Bułka Brioche', 0.00) ON CONFLICT (id) DO NOTHING;
 INSERT INTO ingredient (id, name, price) VALUES (2, 'Wołowina 100%', 5.00) ON CONFLICT (id) DO NOTHING;
@@ -90,6 +90,33 @@ INSERT INTO order_item (id, order_id, product_id, quantity, price_at_purchase) V
 INSERT INTO order_item (id, order_id, product_id, quantity, price_at_purchase) VALUES (4, 4, 5, 1, 12.00) ON CONFLICT (id) DO NOTHING;
 INSERT INTO order_item (id, order_id, product_id, quantity, price_at_purchase) VALUES (5, 5, 6, 1, 8.00) ON CONFLICT (id) DO NOTHING;
 INSERT INTO order_item (id, order_id, product_id, quantity, price_at_purchase) VALUES (6, 6, 1, 2, 25.00) ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('order_item_id_seq', (SELECT MAX(id) FROM order_item));
+
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (7, 5, 2, 12.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (8, 1, 1, 25.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (10, 2, 2, 32.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (11, 5, 1, 13.00);
+
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (12, 1, 1, 25.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (13, 2, 1, 32.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (13, 5, 1, 13.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (14, 3, 1, 22.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (15, 6, 1, 8.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (15, 5, 1, 4.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (16, 4, 1, 28.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (16, 5, 1, 5.00);
+
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (17, 1, 4, 25.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (18, 1, 1, 25.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (19, 4, 1, 28.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (20, 2, 1, 32.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (20, 6, 2, 9.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (21, 3, 1, 22.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (22, 5, 1, 13.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (23, 1, 1, 25.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (24, 2, 1, 32.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (25, 6, 1, 8.00);
 
 INSERT INTO order_item_modifier (id, order_item_id, ingredient_id, action) VALUES (1, 1, 6, 'ADDED') ON CONFLICT (id) DO NOTHING;
 

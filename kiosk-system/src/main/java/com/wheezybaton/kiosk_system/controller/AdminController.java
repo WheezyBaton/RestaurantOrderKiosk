@@ -50,7 +50,7 @@ public class AdminController {
     @GetMapping
     public String dashboard(Model model) {
         model.addAttribute("products", productService.getAllProducts());
-        model.addAttribute("salesStats", statsService.getSalesStats());
+        model.addAttribute("monthlySalesStats", statsService.getSalesStatsGroupedByMonth());
         model.addAttribute("groupedHistory", statsService.getGroupedStatusHistory());
         model.addAttribute("totalRevenue", statsService.getTotalRevenue());
         model.addAttribute("monthlyRevenue", statsService.getMonthlyRevenue());

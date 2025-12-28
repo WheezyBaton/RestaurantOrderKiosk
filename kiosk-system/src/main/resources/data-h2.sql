@@ -3,8 +3,8 @@ DROP TABLE IF EXISTS order_status_history;
 CREATE TABLE IF NOT EXISTS order_status_history (id SERIAL PRIMARY KEY, order_id BIGINT NOT NULL, old_status VARCHAR(50), new_status VARCHAR(50) NOT NULL, changed_at TIMESTAMP NOT NULL);
 
 INSERT INTO category (id, name, image_url) VALUES (1, 'Burgery', 'burger.png');
-INSERT INTO category (id, name, image_url) VALUES (2, 'Dodatki', 'burger.png');
-INSERT INTO category (id, name, image_url) VALUES (3, 'Napoje', 'burger.png');
+INSERT INTO category (id, name, image_url) VALUES (2, 'Dodatki', 'fries.png');
+INSERT INTO category (id, name, image_url) VALUES (3, 'Napoje', 'cola.png');
 
 INSERT INTO ingredient (id, name, price) VALUES (1, 'Bułka Brioche', 0.00);
 INSERT INTO ingredient (id, name, price) VALUES (2, 'Wołowina 100%', 5.00);
@@ -97,6 +97,33 @@ INSERT INTO order_item (id, order_id, product_id, quantity, price_at_purchase) V
 INSERT INTO order_item (id, order_id, product_id, quantity, price_at_purchase) VALUES (4, 4, 5, 1, 12.00);
 INSERT INTO order_item (id, order_id, product_id, quantity, price_at_purchase) VALUES (5, 5, 6, 1, 8.00);
 INSERT INTO order_item (id, order_id, product_id, quantity, price_at_purchase) VALUES (6, 101, 1, 2, 25.00);
+
+ALTER TABLE order_item ALTER COLUMN id RESTART WITH 7;
+
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (10, 1, 2, 25.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (11, 5, 1, 12.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (11, 6, 1, 8.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (12, 1, 1, 25.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (14, 2, 2, 32.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (15, 5, 1, 13.00);
+
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (40, 1, 1, 25.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (41, 2, 1, 32.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (41, 5, 1, 13.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (42, 3, 1, 22.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (43, 6, 2, 8.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (44, 4, 1, 28.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (44, 5, 1, 5.00);
+
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (102, 1, 1, 25.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (103, 4, 1, 28.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (104, 2, 1, 32.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (104, 6, 2, 9.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (105, 3, 1, 22.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (106, 5, 1, 13.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (107, 1, 1, 25.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (108, 2, 1, 32.00);
+INSERT INTO order_item (order_id, product_id, quantity, price_at_purchase) VALUES (109, 6, 1, 8.00);
 
 INSERT INTO order_item_modifier (id, order_item_id, ingredient_id, action) VALUES (1, 1, 6, 'ADDED');
 

@@ -90,29 +90,49 @@
                 </div>
             </div>
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2>📊 Raport Sprzedaży</h2>
+                <h2>📊 Raport Sprzedaży (Miesięczny)</h2>
                 <a href="/admin/report/export" class="btn btn-dark">
-                    <i class="bi bi-download"></i> Pobierz CSV
+                    <i class="bi bi-download"></i> Pobierz CSV (Całość)
                 </a>
             </div>
-            <div class="card shadow-sm mb-5">
-                <div class="card-body">
-                    <table class="table table-bordered">
-                        <thead>
-                        <tr>
-                            <th>Produkt</th>
-                            <th>Sprzedana Ilość</th>
-                            <th>Przychód z produktu</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr th:each="stat : ${salesStats}">
-                            <td th:text="${stat.productName}">Burger</td>
-                            <td th:text="${stat.totalQuantity}">10</td>
-                            <td th:text="${stat.totalRevenue} + ' zł'">250.00 zł</td>
-                        </tr>
-                        </tbody>
-                    </table>
+            <div class="accordion shadow-sm mb-5" id="salesAccordion">
+                <div class="accordion-item" th:each="entry, iterStat : ${monthlySalesStats}">
+                    <h2 class="accordion-header" th:id="'heading' + ${iterStat.index}">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                th:data-bs-target="'#collapse' + ${iterStat.index}"
+                                th:aria-expanded="${iterStat.index == 0}"
+                                th:aria-controls="'collapse' + ${iterStat.index}"
+                                th:classappend="${iterStat.index != 0} ? 'collapsed'">
+                            <i class="bi bi-calendar-month me-2"></i>
+                            <span th:text="${entry.key}" class="fw-bold text-primary">2023-12</span>
+                        </button>
+                    </h2>
+                    <div th:id="'collapse' + ${iterStat.index}" class="accordion-collapse collapse"
+                         th:classappend="${iterStat.index == 0} ? 'show'"
+                         th:aria-labelledby="'heading' + ${iterStat.index}"
+                         data-bs-parent="#salesAccordion">
+                        <div class="accordion-body p-0">
+                            <table class="table table-bordered mb-0 table-striped">
+                                <thead>
+                                <tr>
+                                    <th>Produkt</th>
+                                    <th>Sprzedana Ilość</th>
+                                    <th>Przychód z produktu</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="stat : ${entry.value}">
+                                    <td th:text="${stat.productName}">Burger</td>
+                                    <td th:text="${stat.totalQuantity}">10</td>
+                                    <td th:text="${stat.totalRevenue} + ' zł'">250.00 zł</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div th:if="${#maps.isEmpty(monthlySalesStats)}" class="p-4 text-center text-muted bg-white">
+                    Brak danych sprzedażowych.
                 </div>
             </div>
             <div class="card shadow-sm mb-5 mt-4">
@@ -150,7 +170,6 @@
                                             <i class="bi bi-arrow-right fs-5"></i>
                                         </div>
                                     </div>
-
                                 </div>
                             </td>
                         </tr>
