@@ -27,6 +27,7 @@ class OrderServiceTest {
     @Mock private ProductRepository productRepo;
     @Mock private IngredientRepository ingredientRepo;
     @Mock private CartSession cartSession;
+    @Mock private StatsService statsService;
 
     @InjectMocks
     private OrderService orderService;
@@ -56,6 +57,7 @@ class OrderServiceTest {
         assertEquals(1, result.getDailyNumber());
         assertEquals(OrderStatus.NEW, result.getStatus());
         verify(cartSession).clear();
+        verify(statsService).logStatusChange(anyLong(), isNull(), eq(OrderStatus.NEW));
     }
 
     @Test
@@ -76,20 +78,38 @@ class OrderServiceTest {
     }
 
     @Test
-    void promoteOrderStatus_ShouldPromoteNewToReady() {
+    void promoteOrderStatus_ShouldPromoteNewToInProgress() {
         Order order = new Order();
+        order.setId(1L);
         order.setStatus(OrderStatus.NEW);
+        when(orderRepo.findById(1L)).thenReturn(Optional.of(order));
+
+        orderService.promoteOrderStatus(1L);
+
+        assertEquals(OrderStatus.IN_PROGRESS, order.getStatus());
+        verify(orderRepo).save(order);
+
+        verify(statsService).logStatusChange(1L, OrderStatus.NEW, OrderStatus.IN_PROGRESS);
+    }
+
+    @Test
+    void promoteOrderStatus_ShouldPromoteInProgressToReady() {
+        Order order = new Order();
+        order.setId(1L);
+        order.setStatus(OrderStatus.IN_PROGRESS);
         when(orderRepo.findById(1L)).thenReturn(Optional.of(order));
 
         orderService.promoteOrderStatus(1L);
 
         assertEquals(OrderStatus.READY, order.getStatus());
         verify(orderRepo).save(order);
+        verify(statsService).logStatusChange(1L, OrderStatus.IN_PROGRESS, OrderStatus.READY);
     }
 
     @Test
     void promoteOrderStatus_ShouldPromoteReadyToCompleted() {
         Order order = new Order();
+        order.setId(1L);
         order.setStatus(OrderStatus.READY);
         when(orderRepo.findById(1L)).thenReturn(Optional.of(order));
 
@@ -97,5 +117,6 @@ class OrderServiceTest {
 
         assertEquals(OrderStatus.COMPLETED, order.getStatus());
         verify(orderRepo).save(order);
+        verify(statsService).logStatusChange(1L, OrderStatus.READY, OrderStatus.COMPLETED);
     }
 }

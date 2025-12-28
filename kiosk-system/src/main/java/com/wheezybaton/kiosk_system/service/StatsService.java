@@ -1,6 +1,9 @@
 package com.wheezybaton.kiosk_system.service;
 
+import com.wheezybaton.kiosk_system.dto.OrderHistorySummaryDto;
+import com.wheezybaton.kiosk_system.dto.OrderStatusHistoryDto;
 import com.wheezybaton.kiosk_system.dto.SalesStatDto;
+import com.wheezybaton.kiosk_system.model.OrderStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -12,7 +15,9 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -23,21 +28,17 @@ public class StatsService {
     private final JdbcTemplate jdbcTemplate;
 
     @Transactional
-    public void createAuditTable() {
-        log.debug("Checking/Creating audit_log table schema...");
-        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS audit_log (id SERIAL PRIMARY KEY, action VARCHAR(255), timestamp TIMESTAMP)");
-    }
-
-    @Transactional
-    public void logEvent(String action) {
-        log.debug("Attempting to log audit event: {}", action);
+    public void logStatusChange(Long orderId, OrderStatus oldStatus, OrderStatus newStatus) {
+        log.debug("Attempting to log status change for order #{}: {} -> {}", orderId, oldStatus, newStatus);
         try {
-            createAuditTable();
-            jdbcTemplate.update("INSERT INTO audit_log (action, timestamp) VALUES (?, ?)",
-                    action, LocalDateTime.now());
-            log.trace("Audit event logged successfully.");
+            jdbcTemplate.update("INSERT INTO order_status_history (order_id, old_status, new_status, changed_at) VALUES (?, ?, ?, ?)",
+                    orderId,
+                    oldStatus != null ? oldStatus.name() : null,
+                    newStatus.name(),
+                    LocalDateTime.now());
+            log.trace("Status change logged successfully.");
         } catch (Exception e) {
-            log.error("Failed to write audit log entry for action: {}. Error: {}", action, e.getMessage(), e);
+            log.error("Failed to write status history for order #{}. Error: {}", orderId, e.getMessage(), e);
         }
     }
 
@@ -76,7 +77,7 @@ public class StatsService {
     @Transactional
     public byte[] getSalesCsv() {
         log.info("Starting CSV export generation...");
-        logEvent("EXPORT_CSV_GENERATED");
+        log.debug("CSV Export triggered.");
 
         List<SalesStatDto> stats = getSalesStats();
         StringBuilder csv = new StringBuilder();
@@ -152,5 +153,33 @@ public class StatsService {
             log.error("Error calculating today's revenue: {}", e.getMessage(), e);
             return BigDecimal.ZERO;
         }
+    }
+
+    public List<OrderHistorySummaryDto> getGroupedStatusHistory() {
+        String sql = "SELECT order_id, old_status, new_status, changed_at FROM order_status_history ORDER BY changed_at DESC LIMIT 100";
+
+        List<OrderStatusHistoryDto> rawLogs = jdbcTemplate.query(sql, (rs, rowNum) -> new OrderStatusHistoryDto(
+                rs.getLong("order_id"),
+                rs.getString("old_status"),
+                rs.getString("new_status"),
+                rs.getTimestamp("changed_at").toLocalDateTime()
+        ));
+
+        return rawLogs.stream()
+                .collect(Collectors.groupingBy(OrderStatusHistoryDto::getOrderId))
+                .entrySet().stream()
+                .map(entry -> {
+                    Long orderId = entry.getKey();
+                    List<OrderStatusHistoryDto> steps = entry.getValue();
+                    steps.sort(Comparator.comparing(OrderStatusHistoryDto::getChangedAt));
+                    return new OrderHistorySummaryDto(orderId, steps);
+                })
+                .sorted((o1, o2) -> {
+                    if (o1.getHistorySteps().isEmpty() || o2.getHistorySteps().isEmpty()) return 0;
+                    LocalDateTime lastUpdate1 = o1.getHistorySteps().get(o1.getHistorySteps().size() - 1).getChangedAt();
+                    LocalDateTime lastUpdate2 = o2.getHistorySteps().get(o2.getHistorySteps().size() - 1).getChangedAt();
+                    return lastUpdate2.compareTo(lastUpdate1);
+                })
+                .collect(Collectors.toList());
     }
 }

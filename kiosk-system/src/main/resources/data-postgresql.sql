@@ -1,3 +1,5 @@
+CREATE TABLE IF NOT EXISTS order_status_history (id SERIAL PRIMARY KEY, order_id BIGINT NOT NULL, old_status VARCHAR(50), new_status VARCHAR(50) NOT NULL, changed_at TIMESTAMP NOT NULL);
+
 INSERT INTO category (id, name, image_url) VALUES (1, 'Burgery', 'burger.png') ON CONFLICT (id) DO NOTHING;
 INSERT INTO category (id, name, image_url) VALUES (2, 'Dodatki', 'burger.png') ON CONFLICT (id) DO NOTHING;
 INSERT INTO category (id, name, image_url) VALUES (3, 'Napoje', 'burger.png') ON CONFLICT (id) DO NOTHING;
@@ -97,3 +99,4 @@ SELECT setval('product_id_seq', (SELECT MAX(id) FROM product));
 SELECT setval('orders_id_seq', (SELECT MAX(id) FROM orders));
 SELECT setval('order_item_id_seq', (SELECT MAX(id) FROM order_item));
 SELECT setval('order_item_modifier_id_seq', (SELECT MAX(id) FROM order_item_modifier));
+SELECT setval('order_status_history_id_seq', (SELECT COALESCE(MAX(id), 1) FROM order_status_history));

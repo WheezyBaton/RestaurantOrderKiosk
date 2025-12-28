@@ -51,6 +51,7 @@ public class AdminController {
     public String dashboard(Model model) {
         model.addAttribute("products", productService.getAllProducts());
         model.addAttribute("salesStats", statsService.getSalesStats());
+        model.addAttribute("groupedHistory", statsService.getGroupedStatusHistory());
         model.addAttribute("totalRevenue", statsService.getTotalRevenue());
         model.addAttribute("monthlyRevenue", statsService.getMonthlyRevenue());
         model.addAttribute("monthlyOrders", statsService.getMonthlyOrdersCount());

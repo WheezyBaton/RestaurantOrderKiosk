@@ -2,7 +2,7 @@
 <html lang="pl" xmlns:th="http://www.thymeleaf.org">
     <head th:replace="~{fragments/layout :: header('Admin Dashboard')}"></head>
     <body class="bg-light">
-    <nav th:replace="~{fragments/layout :: navbar-admin}"></nav>
+        <nav th:replace="~{fragments/layout :: navbar-admin}"></nav>
         <div class="container">
             <div class="row mb-4 g-3">
                 <div class="col-md-4">
@@ -110,6 +110,52 @@
                             <td th:text="${stat.productName}">Burger</td>
                             <td th:text="${stat.totalQuantity}">10</td>
                             <td th:text="${stat.totalRevenue} + ' zł'">250.00 zł</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card shadow-sm mb-5 mt-4">
+                <div class="card-header bg-white">
+                    <h4 class="mb-0"><i class="bi bi-clock-history"></i> Cykl Życia Zamówień (Ostatnie 100 wpisów)</h4>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                        <tr>
+                            <th style="width: 15%">Nr Zamówienia</th>
+                            <th style="width: 85%">Przebieg realizacji (Ścieżka statusów)</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="summary : ${groupedHistory}">
+                            <td>
+                                <h5 class="fw-bold mb-0 text-primary">#<span th:text="${summary.orderId}">123</span></h5>
+                                <small class="text-muted"
+                                       th:text="${#temporals.format(summary.historySteps[0].changedAt, 'dd-MM HH:mm')}">
+                                    Data startu
+                                </small>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <div th:each="step, iterStat : ${summary.historySteps}" class="d-flex align-items-center">
+                                        <div class="d-flex flex-column align-items-center p-2 border rounded shadow-sm"
+                                             th:classappend="${step.newStatus == 'COMPLETED' ? 'bg-success text-white border-success' : 'bg-light'}">
+                                            <span class="fw-bold" style="font-size: 0.8rem;" th:text="${step.newStatus}">STATUS</span>
+                                            <span style="font-size: 0.7rem;"
+                                                  th:classappend="${step.newStatus == 'COMPLETED' ? 'text-white-50' : 'text-muted'}"
+                                                  th:text="${#temporals.format(step.changedAt, 'HH:mm:ss')}">12:00</span>
+                                        </div>
+                                        <div th:if="${!iterStat.last}" class="mx-2 text-muted">
+                                            <i class="bi bi-arrow-right fs-5"></i>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(groupedHistory)}">
+                            <td colspan="2" class="text-center py-4 text-muted">Brak historii zamówień.</td>
                         </tr>
                         </tbody>
                     </table>

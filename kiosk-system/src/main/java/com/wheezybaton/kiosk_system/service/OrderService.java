@@ -24,6 +24,7 @@ public class OrderService {
     private final ProductRepository productRepo;
     private final IngredientRepository ingredientRepo;
     private final CartSession cartSession;
+    private final StatsService statsService;
     private final AtomicInteger orderSequence = new AtomicInteger(0);
 
     public int reserveNextOrderNumber() {
@@ -85,6 +86,9 @@ public class OrderService {
         }
 
         Order savedOrder = orderRepo.save(order);
+
+        statsService.logStatusChange(savedOrder.getId(), null, OrderStatus.NEW);
+
         cartSession.clear();
 
         log.info("Order #{} (ID: {}) successfully saved to database.",
@@ -120,6 +124,8 @@ public class OrderService {
 
         switch (order.getStatus()) {
             case NEW:
+                order.setStatus(OrderStatus.IN_PROGRESS);
+                break;
             case IN_PROGRESS:
                 order.setStatus(OrderStatus.READY);
                 break;
@@ -134,6 +140,9 @@ public class OrderService {
 
         if (oldStatus != order.getStatus()) {
             orderRepo.save(order);
+
+            statsService.logStatusChange(orderId, oldStatus, order.getStatus());
+
             log.info("Changed status for order #{} (ID: {}): {} -> {}",
                     order.getDailyNumber(), order.getId(), oldStatus, order.getStatus());
         }
