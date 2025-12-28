@@ -10,17 +10,20 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 
 import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class StatsServiceTest {
@@ -45,6 +48,14 @@ class StatsServiceTest {
     }
 
     @Test
+    void logStatusChange_ShouldHandleExceptionGracefully() {
+        when(jdbcTemplate.update(anyString(), any(), any(), any(), any()))
+                .thenThrow(new RuntimeException("DB Error"));
+
+        statsService.logStatusChange(1L, OrderStatus.NEW, OrderStatus.IN_PROGRESS);
+    }
+
+    @Test
     void getSalesStats_ShouldReturnList() {
         SalesStatDto mockStat = new SalesStatDto("Burger", 5L, BigDecimal.valueOf(100));
         when(jdbcTemplate.query(anyString(), any(RowMapper.class)))
@@ -57,12 +68,83 @@ class StatsServiceTest {
     }
 
     @Test
+    void getSalesStatsGroupedByMonth_ShouldAggregateData() {
+        doAnswer(invocation -> {
+            RowCallbackHandler handler = invocation.getArgument(1);
+
+            ResultSet rs = mock(ResultSet.class);
+
+            when(rs.getTimestamp("created_at")).thenReturn(Timestamp.valueOf("2023-10-15 12:00:00"));
+            when(rs.getString("product_name")).thenReturn("Burger");
+            when(rs.getInt("quantity")).thenReturn(2);
+            when(rs.getBigDecimal("price_at_purchase")).thenReturn(BigDecimal.valueOf(20.00));
+
+            handler.processRow(rs);
+            return null;
+        }).when(jdbcTemplate).query(anyString(), any(RowCallbackHandler.class));
+
+        Map<String, List<SalesStatDto>> result = statsService.getSalesStatsGroupedByMonth();
+
+        assertThat(result).containsKey("2023-10");
+        assertThat(result.get("2023-10")).hasSize(1);
+
+        SalesStatDto stat = result.get("2023-10").get(0);
+        assertThat(stat.getProductName()).isEqualTo("Burger");
+        assertThat(stat.getTotalQuantity()).isEqualTo(2);
+        assertThat(stat.getTotalRevenue()).isEqualTo(BigDecimal.valueOf(40.0));
+    }
+
+    @Test
+    void getSalesCsv_ShouldGenerateCsvContent() {
+        SalesStatDto stat = new SalesStatDto("Fries", 10L, BigDecimal.valueOf(50));
+        when(jdbcTemplate.query(contains("SELECT"), any(RowMapper.class)))
+                .thenReturn(List.of(stat));
+
+        byte[] csv = statsService.getSalesCsv();
+        String csvString = new String(csv);
+
+        assertThat(csvString).contains("Product Name,Quantity Sold,Revenue");
+        assertThat(csvString).contains("Fries,10,50"); // Dane
+    }
+
+    @Test
+    void getTotalRevenue_ShouldReturnAmount() {
+        when(jdbcTemplate.queryForObject(contains("SELECT SUM(total_amount)"), eq(BigDecimal.class)))
+                .thenReturn(BigDecimal.valueOf(500));
+
+        assertThat(statsService.getTotalRevenue()).isEqualTo(BigDecimal.valueOf(500));
+    }
+
+    @Test
+    void getTotalRevenue_ShouldReturnZeroOnException() {
+        when(jdbcTemplate.queryForObject(contains("SELECT SUM(total_amount)"), eq(BigDecimal.class)))
+                .thenThrow(new RuntimeException("DB Connection Error"));
+
+        assertThat(statsService.getTotalRevenue()).isEqualTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    void getMonthlyOrdersCount_ShouldReturnCount() {
+        when(jdbcTemplate.queryForObject(contains("SELECT COUNT(*)"), eq(Long.class)))
+                .thenReturn(10L);
+
+        assertThat(statsService.getMonthlyOrdersCount()).isEqualTo(10L);
+    }
+
+    @Test
+    void getMonthlyOrdersCount_ShouldReturnZeroOnException() {
+        when(jdbcTemplate.queryForObject(contains("SELECT COUNT(*)"), eq(Long.class)))
+                .thenThrow(new RuntimeException("Error"));
+
+        assertThat(statsService.getMonthlyOrdersCount()).isEqualTo(0L);
+    }
+
+    @Test
     void getGroupedStatusHistory_ShouldGroupAndSortCorrectly() {
         LocalDateTime now = LocalDateTime.now();
 
         OrderStatusHistoryDto log1_Order1 = new OrderStatusHistoryDto(1L, null, "NEW", now.minusMinutes(10));
         OrderStatusHistoryDto log2_Order1 = new OrderStatusHistoryDto(1L, "NEW", "IN_PROGRESS", now.minusMinutes(5));
-
         OrderStatusHistoryDto log1_Order2 = new OrderStatusHistoryDto(2L, null, "NEW", now.minusMinutes(2));
 
         when(jdbcTemplate.query(anyString(), any(RowMapper.class)))
