@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
+import org.springframework.validation.BindingResult;
 
 import java.util.List;
 
@@ -51,8 +53,14 @@ public class IngredientController {
     }
 
     @PostMapping("/save")
-    public String saveIngredient(@ModelAttribute Ingredient ingredient) {
+    public String saveIngredient(@Valid @ModelAttribute Ingredient ingredient,
+                                 BindingResult bindingResult) {
         log.debug("Attempting to save ingredient. Name: {}, ID: {}", ingredient.getName(), ingredient.getId());
+
+        if (bindingResult.hasErrors()) {
+            log.warn("Validation failed for ingredient: {}", bindingResult.getAllErrors());
+            return "admin/ingredient-form";
+        }
 
         Ingredient savedIngredient = ingredientService.saveIngredient(ingredient);
 

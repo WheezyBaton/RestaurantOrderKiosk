@@ -118,15 +118,12 @@ public class AdminController {
         } else {
             log.debug("Updating existing product entity ID: {}", product.getId());
             Product existing = productService.getProductById(product.getId());
-            if (existing != null) {
-                product.setAvailable(existing.isAvailable());
-                if (!multipartFile.isEmpty()) {
-                    saveImage(product, multipartFile);
-                } else {
-                    product.setImageUrl(existing.getImageUrl());
-                }
+            product.setAvailable(existing.isAvailable());
+
+            if (!multipartFile.isEmpty()) {
+                saveImage(product, multipartFile);
             } else {
-                log.error("Attempted to update non-existent product ID: {}", product.getId());
+                product.setImageUrl(existing.getImageUrl());
             }
         }
 

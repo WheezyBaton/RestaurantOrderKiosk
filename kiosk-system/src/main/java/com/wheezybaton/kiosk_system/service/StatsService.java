@@ -7,13 +7,10 @@ import com.wheezybaton.kiosk_system.model.OrderStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -48,26 +45,22 @@ public class StatsService {
         String sql = """
             SELECT 
                 p.name AS product_name, 
-                SUM(oi.quantity) AS total_qty, 
-                SUM(oi.price_at_purchase * oi.quantity) AS total_rev 
+                SUM(oi.quantity) AS total_quantity, 
+                SUM(oi.quantity * oi.price_at_purchase) AS total_revenue
             FROM order_item oi
             JOIN product p ON oi.product_id = p.id
             JOIN orders o ON oi.order_id = o.id
-            WHERE o.status != 'CANCELLED' 
+            WHERE o.status = 'COMPLETED' 
             GROUP BY p.name
-            ORDER BY total_rev DESC
+            ORDER BY total_revenue DESC
         """;
 
-        List<SalesStatDto> stats = jdbcTemplate.query(sql, new RowMapper<SalesStatDto>() {
-            @Override
-            public SalesStatDto mapRow(ResultSet rs, int rowNum) throws SQLException {
-                BigDecimal revenue = rs.getBigDecimal("total_rev");
-                return new SalesStatDto(
-                        rs.getString("product_name"),
-                        rs.getLong("total_qty"),
-                        revenue != null ? revenue : BigDecimal.ZERO
-                );
-            }
+        List<SalesStatDto> stats = jdbcTemplate.query(sql, (rs, rowNum) -> {
+            SalesStatDto dto = new SalesStatDto();
+            dto.setProductName(rs.getString("product_name"));
+            dto.setTotalQuantity(rs.getLong("total_quantity"));
+            dto.setTotalRevenue(rs.getBigDecimal("total_revenue"));
+            return dto;
         });
 
         log.debug("Retrieved sales statistics for {} distinct products.", stats.size());

@@ -59,11 +59,6 @@ public class ProductService {
         return productRepository.findByDeletedFalseAndAvailableTrue();
     }
 
-    public List<Product> getAllActiveProducts() {
-        log.debug("Retrieving all active products (alias for getAllProducts).");
-        return productRepository.findByDeletedFalse();
-    }
-
     @Transactional
     public void toggleProductAvailability(Long id) {
         log.debug("Toggling availability for product ID: {}", id);
