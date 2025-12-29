@@ -48,8 +48,7 @@ The system is designed to streamline restaurant operations by connecting the fro
 ## 🚀 Getting Started
 
 ### Prerequisites
-* Docker & Docker Compose (Recommended)
-* **OR** Java JDK 17+ and Maven (for local manual run)
+* Docker & Docker Compose
 
 ### Run with Docker
 This method sets up both the application and the PostgreSQL database automatically.
