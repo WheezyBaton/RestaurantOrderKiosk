@@ -48,8 +48,7 @@ The system is designed to streamline restaurant operations by connecting the fro
 ## 🚀 Getting Started
 
 ### Prerequisites
-* Docker & Docker Compose (Recommended)
-* **OR** Java JDK 17+ and Maven (for local manual run)
+* Docker & Docker Compose
 
 ### Run with Docker
 This method sets up both the application and the PostgreSQL database automatically.
@@ -80,102 +79,6 @@ The application comes with pre-configured users for different roles (defined in 
 | **Customer** | `/` | *(No Auth)* | - | Public kiosk interface. |
 | **Board** | `/board` | *(No Auth)* | - | Public order status display. |
 
----
-
-## 📂 Project Structure
-
-```text
-src
-├── main
-│   ├── java/com/wheezybaton/kiosk_system
-│   │   ├── KioskSystemApplication.java      # Main entry point
-│   │   ├── config/                          # Configuration classes
-│   │   │   ├── DataInitializer.java         # Initial data loader
-│   │   │   ├── OpenApiConfig.java           # Swagger/OpenAPI setup
-│   │   │   ├── SecurityConfig.java          # Spring Security roles & access
-│   │   │   └── WebConfig.java               # Web MVC config (resource handlers)
-│   │   ├── controller/                      # Request handlers
-│   │   │   ├── AdminController.java         # Back-office management
-│   │   │   ├── IngredientController.java    # Ingredient management
-│   │   │   ├── KioskController.java         # Main customer interface
-│   │   │   ├── KitchenController.java       # Kitchen display system
-│   │   │   └── ProductRestController.java   # REST API for products
-│   │   ├── dto/                             # Data Transfer Objects
-│   │   │   ├── CartItemDto.java
-│   │   │   ├── CreateProductRequest.java
-│   │   │   ├── ProductDto.java
-│   │   │   ├── ProductIngredientDto.java
-│   │   │   └── SalesStatDto.java
-│   │   ├── exception/                       # Global exception handling
-│   │   │   ├── GlobalExceptionHandler.java
-│   │   │   └── ResourceNotFoundException.java
-│   │   ├── model/                           # Database Entities (JPA)
-│   │   │   ├── CartSession.java             # Session-scoped cart bean
-│   │   │   ├── Category.java
-│   │   │   ├── Ingredient.java
-│   │   │   ├── ModifierAction.java          # Enum (ADDED/REMOVED)
-│   │   │   ├── Order.java
-│   │   │   ├── OrderItem.java
-│   │   │   ├── OrderItemModifier.java
-│   │   │   ├── OrderStatus.java             # Enum
-│   │   │   ├── OrderType.java               # Enum (EAT_IN/TAKE_AWAY)
-│   │   │   ├── Product.java
-│   │   │   └── ProductIngredient.java       # Many-to-Many link with config
-│   │   ├── repository/                      # Data Access Layer
-│   │   │   ├── CategoryRepository.java
-│   │   │   ├── IngredientRepository.java
-│   │   │   ├── OrderRepository.java
-│   │   │   ├── ProductIngredientRepository.java
-│   │   │   └── ProductRepository.java
-│   │   └── service/                         # Business Logic
-│   │       ├── CartService.java             # Cart logic
-│   │       ├── OrderService.java            # Order processing
-│   │       ├── ProductService.java          # Product management
-│   │       └── StatsService.java            # Reporting & Statistics
-│   └── resources
-│       ├── application.yml                  # App configuration
-│       ├── data-h2.sql                      # Seed data for dev
-│       ├── data-postgresql.sql              # Seed data for prod
-│       └── templates/                       # Thymeleaf views
-│           ├── admin/                       # Admin pages
-│           │   ├── dashboard.html
-│           │   ├── ingredient-form.html
-│           │   ├── ingredients.html
-│           │   └── product-form.html
-│           ├── fragments/                   # Reusable layouts
-│           │   └── layout.html
-│           ├── board.html                   # Public order status board
-│           ├── checkout.html
-│           ├── configure.html               # Product customizer
-│           ├── kitchen.html                 # KDS view
-│           ├── menu.html
-│           ├── success.html
-│           └── welcome.html
-└── test/java/com/wheezybaton/kiosk_system   # Unit & Integration Tests
-    ├── KioskSystemApplicationTests.java     # Context load test
-    ├── SimplePojoTest.java                  # Getter/Setter POJO tests
-    ├── config/
-    │   └── DataInitializerTest.java
-    ├── controller/
-    │   ├── AdminControllerTest.java
-    │   ├── IngredientControllerTest.java
-    │   ├── KioskControllerTest.java
-    │   ├── KitchenControllerTest.java
-    │   └── ProductRestControllerTest.java
-    ├── model/
-    │   └── CartSessionTest.java
-    ├── repository/
-    │   ├── CategoryRepositoryTest.java
-    │   ├── IngredientRepositoryTest.java
-    │   ├── OrderRepositoryTest.java
-    │   └── ProductRepositoryTest.java
-    └── service/
-        ├── CartServiceTest.java
-        ├── OrderServiceTest.java
-        ├── ProductServiceTest.java
-        ├── StatsServiceIntegrationTest.java
-        └── StatsServiceTest.java	
-```
 ---
 
 ## 📡 API Documentation
