@@ -13,21 +13,22 @@ public class ArchitectureTest {
 
     @ArchTest
     static final ArchRule services_should_be_in_service_package =
-            classes()
-                    .that().haveSimpleNameEndingWith("Service")
-                    .should().resideInAPackage("..service..");
+            classes().that().haveSimpleNameEndingWith("Service").should().resideInAPackage("..service..");
 
     @ArchTest
     static final ArchRule controllers_should_be_in_controller_package =
-            classes()
-                    .that().haveSimpleNameEndingWith("Controller")
-                    .should().resideInAPackage("..controller..");
+            classes().that().haveSimpleNameEndingWith("Controller").should().resideInAPackage("..controller..");
 
     @ArchTest
     static final ArchRule repositories_should_be_in_repository_package =
+            classes().that().haveSimpleNameEndingWith("Repository").should().resideInAPackage("..repository..");
+
+    @ArchTest
+    static final ArchRule annotated_controllers_should_be_in_controller_package =
             classes()
-                    .that().haveSimpleNameEndingWith("Repository")
-                    .should().resideInAPackage("..repository..");
+                    .that().areAnnotatedWith("org.springframework.stereotype.Controller")
+                    .or().areAnnotatedWith("org.springframework.web.bind.annotation.RestController")
+                    .should().resideInAPackage("..controller..");
 
     @ArchTest
     static final ArchRule layered_architecture_must_be_respected =
@@ -36,9 +37,16 @@ public class ArchitectureTest {
                     .layer("Controller").definedBy("..controller..")
                     .layer("Service").definedBy("..service..")
                     .layer("Repository").definedBy("..repository..")
-                    .layer("Config").definedBy("..config..") // Dodajemy warstwę Config
+                    .layer("Model").definedBy("..model..") // Np. encje, DTO
 
                     .whereLayer("Controller").mayNotBeAccessedByAnyLayer()
-                    .whereLayer("Service").mayOnlyBeAccessedByLayers("Controller", "Service", "Config")
-                    .whereLayer("Repository").mayOnlyBeAccessedByLayers("Service", "Config");
+                    .whereLayer("Service").mayOnlyBeAccessedByLayers("Controller", "Service")
+                    .whereLayer("Repository").mayOnlyBeAccessedByLayers("Service")
+                    .whereLayer("Model").mayOnlyBeAccessedByLayers("Repository", "Service", "Controller");
+
+    @ArchTest
+    static final ArchRule no_cycles_in_structure =
+            com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices()
+                    .matching("com.wheezybaton.kiosk_system.(*)..")
+                    .should().beFreeOfCycles();
 }

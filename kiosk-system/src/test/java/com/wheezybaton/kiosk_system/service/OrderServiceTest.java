@@ -5,8 +5,11 @@ import com.wheezybaton.kiosk_system.model.*;
 import com.wheezybaton.kiosk_system.repository.IngredientRepository;
 import com.wheezybaton.kiosk_system.repository.OrderRepository;
 import com.wheezybaton.kiosk_system.repository.ProductRepository;
+import com.wheezybaton.kiosk_system.model.OrderItem;
+import com.wheezybaton.kiosk_system.model.ModifierAction;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -160,5 +163,52 @@ class OrderServiceTest {
 
         verify(orderRepo, never()).save(any());
         assertEquals(OrderStatus.COMPLETED, order.getStatus());
+    }
+
+    @Test
+    void placeOrder_ShouldCreateOrder_WithCorrectItemsAndModifiers() {
+        Long productId = 1L;
+        Long ingredientId = 55L;
+
+        Product productEntity = new Product();
+        productEntity.setId(productId);
+        productEntity.setBasePrice(BigDecimal.TEN);
+        when(productRepo.getReferenceById(productId)).thenReturn(productEntity);
+
+        Ingredient ingredientEntity = new Ingredient();
+        ingredientEntity.setId(ingredientId);
+        ingredientEntity.setPrice(BigDecimal.ONE);
+        when(ingredientRepo.getReferenceById(ingredientId)).thenReturn(ingredientEntity);
+
+        CartItemDto itemDto = new CartItemDto();
+        itemDto.setProductId(productId);
+        itemDto.setQuantity(2);
+        itemDto.setAddedIngredientIds(List.of(ingredientId));
+        itemDto.setRemovedIngredientIds(Collections.emptyList());
+
+        when(cartSession.getItems()).thenReturn(List.of(itemDto));
+        when(cartSession.getOrderType()).thenReturn(OrderType.EAT_IN);
+
+        when(orderRepo.save(any(Order.class))).thenAnswer(invocation -> {
+            Order order = invocation.getArgument(0);
+            order.setId(123L);
+            return order;
+        });
+
+        orderService.placeOrder();
+
+        ArgumentCaptor<Order> orderCaptor = ArgumentCaptor.forClass(Order.class);
+        verify(orderRepo).save(orderCaptor.capture());
+        Order savedOrder = orderCaptor.getValue();
+
+        assertEquals(1, savedOrder.getItems().size());
+
+        OrderItem savedItem = savedOrder.getItems().get(0);
+        assertEquals(2, savedItem.getQuantity());
+        assertEquals(productEntity, savedItem.getProduct());
+
+        assertEquals(1, savedItem.getModifiers().size());
+        assertEquals(ingredientEntity, savedItem.getModifiers().get(0).getIngredient());
+        assertEquals(ModifierAction.ADDED, savedItem.getModifiers().get(0).getAction());
     }
 }

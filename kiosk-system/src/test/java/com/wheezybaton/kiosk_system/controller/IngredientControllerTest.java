@@ -2,10 +2,12 @@ package com.wheezybaton.kiosk_system.controller;
 
 import com.wheezybaton.kiosk_system.model.Ingredient;
 import com.wheezybaton.kiosk_system.service.IngredientService;
+import com.wheezybaton.kiosk_system.config.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -19,6 +21,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(IngredientController.class)
+@Import(SecurityConfig.class)
 class IngredientControllerTest {
 
     @Autowired
@@ -114,5 +117,26 @@ class IngredientControllerTest {
                 .andExpect(redirectedUrl("/admin/ingredients?error=used"));
 
         verify(ingredientService).deleteIngredient(ingredientId);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void shouldSaveIngredient_ValidationFail_ShouldReturnForm() throws Exception {
+        mockMvc.perform(post("/admin/ingredients/save")
+                        .with(csrf())
+                        .param("name", "")
+                        .param("price", "-5.00"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/ingredient-form"))
+                .andExpect(model().attributeHasFieldErrors("ingredient", "name", "price"));
+
+        verify(ingredientService, never()).saveIngredient(any());
+    }
+
+    @Test
+    @WithMockUser(roles = "KITCHEN")
+    void shouldDeleteIngredient_AsUser_ShouldReturnForbidden() throws Exception {
+        mockMvc.perform(get("/admin/ingredients/delete/1"))
+                .andExpect(status().isForbidden());
     }
 }

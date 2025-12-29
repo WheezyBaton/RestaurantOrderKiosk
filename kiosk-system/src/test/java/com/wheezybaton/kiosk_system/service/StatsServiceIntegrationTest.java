@@ -29,34 +29,43 @@ class StatsServiceIntegrationTest {
     private OrderRepository orderRepo;
 
     @Test
-    void shouldCorrectlyMapSalesStatsUsingRowMapper() {
+    void shouldCalculateStats_OnlyForCompletedOrders() {
         Product burger = productRepo.save(new Product(null, "Test Burger", BigDecimal.valueOf(20), "", "", true, null, null, false));
 
-        Order order = new Order();
-        order.setDailyNumber(1);
-        order.setStatus(OrderStatus.COMPLETED);
-        order.setType(OrderType.EAT_IN);
-        order.setTotalAmount(BigDecimal.valueOf(40));
-        order.setCreatedAt(LocalDateTime.now());
+        createTestOrder(burger, OrderStatus.COMPLETED, 2);
 
-        OrderItem item = new OrderItem();
-        item.setOrder(order);
-        item.setProduct(burger);
-        item.setQuantity(2);
-        item.setPriceAtPurchase(BigDecimal.valueOf(20)); 
+        createTestOrder(burger, OrderStatus.NEW, 5);
 
-        order.setItems(List.of(item));
-        orderRepo.save(order);
-        
         List<SalesStatDto> stats = statsService.getSalesStats();
-        
+
         assertThat(stats).isNotEmpty();
+
         SalesStatDto stat = stats.stream()
                 .filter(s -> s.getProductName().equals("Test Burger"))
                 .findFirst()
-                .orElseThrow();
+                .orElseThrow(() -> new AssertionError("Statystyki dla 'Test Burger' nie zostały znalezione"));
 
         assertThat(stat.getTotalQuantity()).isEqualTo(2);
         assertThat(stat.getTotalRevenue()).isEqualByComparingTo(BigDecimal.valueOf(40.00));
+    }
+
+    private void createTestOrder(Product product, OrderStatus status, int quantity) {
+        Order order = new Order();
+        order.setDailyNumber(1);
+        order.setStatus(status);
+        order.setType(OrderType.EAT_IN);
+        order.setCreatedAt(LocalDateTime.now());
+
+        BigDecimal lineTotal = product.getBasePrice().multiply(BigDecimal.valueOf(quantity));
+        order.setTotalAmount(lineTotal);
+
+        OrderItem item = new OrderItem();
+        item.setOrder(order);
+        item.setProduct(product);
+        item.setQuantity(quantity);
+        item.setPriceAtPurchase(product.getBasePrice());
+
+        order.setItems(List.of(item));
+        orderRepo.save(order);
     }
 }

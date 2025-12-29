@@ -8,6 +8,7 @@ import com.wheezybaton.kiosk_system.model.ProductIngredient;
 import com.wheezybaton.kiosk_system.repository.ProductRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -16,7 +17,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,23 +38,26 @@ class CartServiceTest {
         product.setBasePrice(new BigDecimal("30.00"));
 
         Ingredient cheese = new Ingredient(10L, "Cheese", new BigDecimal("5.00"));
+
         ProductIngredient pi = new ProductIngredient();
         pi.setIngredient(cheese);
         pi.setCustomPrice(new BigDecimal("4.00"));
+        pi.setProduct(product);
 
         product.setProductIngredients(List.of(pi));
 
         when(productRepo.findById(1L)).thenReturn(Optional.of(product));
 
-        cartService.addToCart(1L, List.of(10L), null, 1);
+        cartService.addToCart(1L, List.of(10L), null, 2);
 
-        verify(cartSession).addItem(any(CartItemDto.class));
-    }
+        ArgumentCaptor<CartItemDto> captor = ArgumentCaptor.forClass(CartItemDto.class);
 
-    @Test
-    void removeFromCart_ShouldDelegate() {
-        java.util.UUID uuid = java.util.UUID.randomUUID();
-        cartService.removeFromCart(uuid);
-        verify(cartSession).removeItem(uuid);
+        verify(cartSession).addItem(captor.capture());
+
+        CartItemDto capturedItem = captor.getValue();
+
+        assertThat(capturedItem.getProductId()).isEqualTo(1L);
+        assertThat(capturedItem.getQuantity()).isEqualTo(2);
+        assertThat(capturedItem.getTotalPrice()).isEqualByComparingTo(new BigDecimal("68.00"));
     }
 }

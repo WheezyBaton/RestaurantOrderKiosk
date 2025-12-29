@@ -7,15 +7,19 @@ import com.wheezybaton.kiosk_system.model.Ingredient;
 import com.wheezybaton.kiosk_system.model.Product;
 import com.wheezybaton.kiosk_system.model.ProductIngredient;
 import com.wheezybaton.kiosk_system.service.ProductService;
+import com.wheezybaton.kiosk_system.config.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -28,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ProductRestController.class)
+@Import(SecurityConfig.class)
 class ProductRestControllerTest {
 
     @Autowired
@@ -198,5 +203,31 @@ class ProductRestControllerTest {
                 .andExpect(jsonPath("$.ingredients[0].price").value(2))
                 .andExpect(jsonPath("$.ingredients[0].default").value(true))
                 .andExpect(jsonPath("$.ingredients[0].maxQuantity").value(5));
+    }
+
+    @Test
+    @WithMockUser(roles = "KITCHEN")
+    void deleteProduct_AsUser_ShouldReturnForbidden() throws Exception {
+        mockMvc.perform(delete("/api/v1/products/1")
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+
+        verify(productService, never()).deleteProduct(any());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void createProduct_WithInvalidData_ShouldReturnBadRequest() throws Exception {
+        CreateProductRequest request = new CreateProductRequest();
+        request.setName("");
+        request.setBasePrice(BigDecimal.valueOf(-10));
+
+        mockMvc.perform(post("/api/v1/products")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(productService, never()).createProduct(any());
     }
 }

@@ -139,18 +139,6 @@ class ProductServiceTest {
     }
 
     @Test
-    void getAllActiveProducts_ShouldReturnListOfProducts() {
-        Product product = new Product();
-        product.setName("Active Product");
-        when(productRepository.findByDeletedFalse()).thenReturn(List.of(product));
-
-        List<Product> result = productService.getAllActiveProducts();
-
-        assertEquals(1, result.size());
-        verify(productRepository).findByDeletedFalse();
-    }
-
-    @Test
     void toggleProductAvailability_ShouldToggleStatusAndSave() {
         Long productId = 1L;
         Product product = new Product();

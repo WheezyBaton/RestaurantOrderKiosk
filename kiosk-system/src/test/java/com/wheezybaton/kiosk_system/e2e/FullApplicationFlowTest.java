@@ -75,8 +75,9 @@ public class FullApplicationFlowTest {
         safeClick(By.cssSelector("button.btn-success[type='submit']"));
 
         wait.until(ExpectedConditions.urlContains("/menu"));
-        Thread.sleep(500);
-        safeClick(By.cssSelector("a.btn-success[href*='/checkout']"));
+        By checkoutBtnLocator = By.cssSelector("a.btn-success[href*='/checkout']");
+        wait.until(ExpectedConditions.elementToBeClickable(checkoutBtnLocator));
+        safeClick(checkoutBtnLocator);
 
         wait.until(ExpectedConditions.urlContains("/checkout"));
         safeClick(By.xpath("//form[contains(@action, '/order/pay')]//button[@type='submit']"));

@@ -9,6 +9,7 @@ import com.wheezybaton.kiosk_system.service.CategoryService;
 import com.wheezybaton.kiosk_system.service.IngredientService;
 import com.wheezybaton.kiosk_system.service.ProductService;
 import com.wheezybaton.kiosk_system.service.StatsService;
+import com.wheezybaton.kiosk_system.config.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.context.annotation.Import;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -35,6 +37,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AdminController.class)
+@Import(SecurityConfig.class)
 class AdminControllerTest {
 
     @Autowired
@@ -273,28 +276,28 @@ class AdminControllerTest {
 
     @Test
     @WithMockUser(username = "admin", roles = {"ADMIN"})
-    void saveProduct_UpdateNonExistent_ShouldLogAndProceed() throws Exception {
+    void saveProduct_UpdateNonExistent_ShouldReturn404() throws Exception {
         Long nonExistentId = 999L;
-        Category category = new Category();
-        category.setId(1L);
+        Long categoryId = 1L;
 
-        when(categoryService.getAllCategories()).thenReturn(List.of(category));
-        when(productService.getProductById(nonExistentId)).thenReturn(null);
+        Category mockCategory = new Category();
+        mockCategory.setId(categoryId);
+        mockCategory.setName("Test Category");
+        when(categoryService.getAllCategories()).thenReturn(List.of(mockCategory));
 
-        when(productService.saveProductEntity(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+        when(productService.getProductById(nonExistentId))
+                .thenThrow(new com.wheezybaton.kiosk_system.exception.ResourceNotFoundException("Product not found"));
 
-        MockMultipartFile emptyFile = new MockMultipartFile("imageFile", "", "image/png", new byte[0]);
+        MockMultipartFile emptyFile = new MockMultipartFile("imageFile", "test.png", "image/png", new byte[0]);
 
         mockMvc.perform(multipart("/admin/products/save")
                         .file(emptyFile)
                         .param("id", nonExistentId.toString())
                         .param("name", "Ghost Product")
-                        .param("basePrice", "5.00")
-                        .param("categoryId", "1")
+                        .param("basePrice", "10.00")
+                        .param("categoryId", categoryId.toString())
                         .with(csrf()))
-                .andExpect(status().is3xxRedirection());
-
-        verify(productService).saveProductEntity(any(Product.class));
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -345,8 +348,14 @@ class AdminControllerTest {
         mockMvc.perform(get("/admin/products/edit/{id}", productId))
                 .andExpect(status().isOk())
                 .andExpect(model().attributeExists("activeIngredients"))
-                // Sprawdzamy czy mapa zawiera odpowiednie klucze i wartości
                 .andExpect(model().attribute("activeIngredients", org.hamcrest.Matchers.hasEntry(101L, pi1)))
                 .andExpect(model().attribute("activeIngredients", org.hamcrest.Matchers.hasEntry(102L, pi2)));
+    }
+
+    @Test
+    @WithMockUser(roles = "KITCHEN")
+    void deleteProduct_AsUser_ShouldReturnForbidden() throws Exception {
+        mockMvc.perform(get("/admin/products/delete/1"))
+                .andExpect(status().isForbidden());
     }
 }

@@ -6,10 +6,11 @@ import com.wheezybaton.kiosk_system.repository.CategoryRepository;
 import com.wheezybaton.kiosk_system.service.CartService;
 import com.wheezybaton.kiosk_system.service.OrderService;
 import com.wheezybaton.kiosk_system.service.ProductService;
+import com.wheezybaton.kiosk_system.config.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -26,6 +27,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(KioskController.class)
+@Import(SecurityConfig.class)
 class KioskControllerTest {
 
     @Autowired private MockMvc mockMvc;
@@ -36,7 +38,6 @@ class KioskControllerTest {
     @MockitoBean private OrderService orderService;
 
     @Test
-    @WithMockUser
     void showMenu_ShouldPassCartAndProducts() throws Exception {
         when(cartService.getSession()).thenReturn(new CartSession());
         when(productService.getAvailableProducts()).thenReturn(List.of(new Product()));
@@ -48,7 +49,6 @@ class KioskControllerTest {
     }
 
     @Test
-    @WithMockUser
     void addCustomProduct_ShouldProcessIngredientsFromRequest() throws Exception {
         Product product = new Product();
         product.setId(1L);
@@ -81,7 +81,6 @@ class KioskControllerTest {
     }
 
     @Test
-    @WithMockUser
     void removeCartItem_ShouldCallService() throws Exception {
         UUID uuid = UUID.randomUUID();
         mockMvc.perform(post("/cart/remove/" + uuid).with(csrf()))
@@ -91,7 +90,6 @@ class KioskControllerTest {
     }
 
     @Test
-    @WithMockUser
     void payAndOrder_ShouldRedirectToSuccess_OnSuccess() throws Exception {
         Order order = new Order();
         order.setDailyNumber(123);
@@ -104,7 +102,6 @@ class KioskControllerTest {
     }
 
     @Test
-    @WithMockUser
     void configureProduct_ShouldLoadConfigFromCart_WhenCartItemIdProvided() throws Exception {
         Long productId = 1L;
         UUID cartItemId = UUID.randomUUID();
@@ -147,7 +144,6 @@ class KioskControllerTest {
     }
 
     @Test
-    @WithMockUser
     void addToCart_ShouldRemoveOldItemAndRedirectToCheckout_WhenUpdating() throws Exception {
         Long productId = 1L;
         UUID oldCartItemId = UUID.randomUUID();
@@ -171,7 +167,6 @@ class KioskControllerTest {
     }
 
     @Test
-    @WithMockUser
     void addToCart_ShouldIgnoreInvalidIngredientQuantity() throws Exception {
         Long productId = 1L;
         Product product = new Product();
@@ -199,7 +194,6 @@ class KioskControllerTest {
     }
 
     @Test
-    @WithMockUser
     void clearCart_ShouldClearSessionAndRedirect() throws Exception {
         CartSession mockSession = mock(CartSession.class);
         when(cartService.getSession()).thenReturn(mockSession);
@@ -213,7 +207,6 @@ class KioskControllerTest {
     }
 
     @Test
-    @WithMockUser
     void showCheckout_ShouldRedirectToMenu_WhenCartIsEmpty() throws Exception {
         CartSession mockSession = mock(CartSession.class);
         when(cartService.getSession()).thenReturn(mockSession);
@@ -225,7 +218,6 @@ class KioskControllerTest {
     }
 
     @Test
-    @WithMockUser
     void showSuccess_ShouldRedirectToWelcome_WhenNoOrderNumber() throws Exception {
         mockMvc.perform(get("/order-success"))
                 .andExpect(status().is3xxRedirection())
@@ -233,7 +225,6 @@ class KioskControllerTest {
     }
 
     @Test
-    @WithMockUser
     void showSuccess_ShouldShowPage_WhenOrderNumberExists() throws Exception {
         mockMvc.perform(get("/order-success")
                         .flashAttr("orderNumber", 123L))
