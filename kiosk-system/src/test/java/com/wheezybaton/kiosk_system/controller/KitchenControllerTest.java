@@ -11,7 +11,6 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.Matchers.hasSize;
@@ -57,7 +56,7 @@ class KitchenControllerTest {
     @Test
     void showOrderBoard_ShouldBePubliclyAccessible() throws Exception {
         when(orderService.getOrdersInProgress()).thenReturn(List.of(new Order()));
-        when(orderService.getOrdersReady()).thenReturn(Collections.emptyList());
+        when(orderService.getOrdersReady()).thenReturn(List.of());
 
         mockMvc.perform(get("/board"))
                 .andExpect(status().isOk())

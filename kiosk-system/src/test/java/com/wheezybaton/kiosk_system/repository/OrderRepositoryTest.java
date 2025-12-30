@@ -24,6 +24,10 @@ class OrderRepositoryTest {
     @Autowired
     private TestEntityManager entityManager;
 
+    private Order createOrder(int number, LocalDateTime date, OrderStatus status) {
+        return new Order(null, number, date, status, OrderType.TAKE_AWAY, BigDecimal.TEN, null);
+    }
+
     @Test
     @Transactional
     void shouldCountOrdersSinceSpecificDate() {
@@ -70,12 +74,7 @@ class OrderRepositoryTest {
 
     @Test
     void shouldSaveAndRetrieveOrder() {
-        Order order = new Order();
-        order.setDailyNumber(100);
-        order.setStatus(OrderStatus.NEW);
-        order.setType(OrderType.EAT_IN);
-        order.setTotalAmount(BigDecimal.valueOf(50.00));
-        order.setCreatedAt(LocalDateTime.now());
+        Order order = new Order(null, 100, LocalDateTime.now(), OrderStatus.NEW, OrderType.EAT_IN, BigDecimal.valueOf(50.00), null);
 
         Order saved = orderRepo.save(order);
         Order found = orderRepo.findById(saved.getId()).orElse(null);
@@ -83,15 +82,5 @@ class OrderRepositoryTest {
         assertThat(found).isNotNull();
         assertThat(found.getDailyNumber()).isEqualTo(100);
         assertThat(found.getTotalAmount()).isEqualByComparingTo(BigDecimal.valueOf(50.00));
-    }
-
-    private Order createOrder(int number, LocalDateTime date, OrderStatus status) {
-        Order o = new Order();
-        o.setDailyNumber(number);
-        o.setCreatedAt(date);
-        o.setStatus(status);
-        o.setType(OrderType.TAKE_AWAY);
-        o.setTotalAmount(BigDecimal.TEN);
-        return o;
     }
 }

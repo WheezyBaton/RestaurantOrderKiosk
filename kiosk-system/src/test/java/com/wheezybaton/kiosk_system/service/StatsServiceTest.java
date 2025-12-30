@@ -39,14 +39,7 @@ class StatsServiceTest {
     @Test
     void logStatusChange_ShouldExecuteUpdate() {
         statsService.logStatusChange(1L, OrderStatus.NEW, OrderStatus.IN_PROGRESS);
-
-        verify(jdbcTemplate).update(
-                contains("INSERT INTO order_status_history"),
-                eq(1L),
-                eq("NEW"),
-                eq("IN_PROGRESS"),
-                any(LocalDateTime.class)
-        );
+        verify(jdbcTemplate).update(contains("INSERT INTO order_status_history"), eq(1L), eq("NEW"), eq("IN_PROGRESS"), any(LocalDateTime.class));
     }
 
     @Test
@@ -106,7 +99,7 @@ class StatsServiceTest {
         String csvString = new String(csv);
 
         assertThat(csvString).contains("Product Name,Quantity Sold,Revenue");
-        assertThat(csvString).contains("Fries,10,50"); // Dane
+        assertThat(csvString).contains("Fries,10,50");
     }
 
     @Test

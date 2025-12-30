@@ -11,8 +11,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.util.List;
 
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -24,16 +28,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(SecurityConfig.class)
 class IngredientControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockitoBean
-    private IngredientService ingredientService;
+    @Autowired private MockMvc mockMvc;
+    @MockitoBean private IngredientService ingredientService;
 
     @Test
     @WithMockUser(roles = "ADMIN")
     void shouldListIngredients() throws Exception {
-        when(ingredientService.getAllIngredients()).thenReturn(List.of(new Ingredient()));
+        when(ingredientService.getAllIngredients())
+                .thenReturn(List.of(new Ingredient(1L, "Test", BigDecimal.TEN)));
 
         mockMvc.perform(get("/admin/ingredients"))
                 .andExpect(status().isOk())
@@ -73,20 +75,17 @@ class IngredientControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/ingredient-form"))
                 .andExpect(model().attributeExists("ingredient"))
-                .andExpect(model().attribute("ingredient", org.hamcrest.Matchers.notNullValue()));
+                .andExpect(model().attribute("ingredient", notNullValue()));
     }
 
     @Test
     @WithMockUser(roles = "ADMIN")
     void showEditForm_ShouldReturnView_WhenIngredientExists() throws Exception {
-        Long ingredientId = 1L;
-        Ingredient ingredient = new Ingredient();
-        ingredient.setId(ingredientId);
-        ingredient.setName("Tomato");
+        Ingredient ingredient = new Ingredient(1L, "Tomato", BigDecimal.TEN);
 
-        when(ingredientService.getIngredientById(ingredientId)).thenReturn(ingredient);
+        when(ingredientService.getIngredientById(1L)).thenReturn(ingredient);
 
-        mockMvc.perform(get("/admin/ingredients/edit/" + ingredientId))
+        mockMvc.perform(get("/admin/ingredients/edit/1"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/ingredient-form"))
                 .andExpect(model().attribute("ingredient", ingredient));
@@ -95,28 +94,24 @@ class IngredientControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void showEditForm_ShouldThrowException_WhenIngredientNotFound() throws Exception {
-        Long nonExistentId = 99L;
-        when(ingredientService.getIngredientById(nonExistentId)).thenReturn(null);
+        when(ingredientService.getIngredientById(99L)).thenReturn(null);
 
-        mockMvc.perform(get("/admin/ingredients/edit/" + nonExistentId))
-                .andExpect(result -> org.junit.jupiter.api.Assertions.assertTrue(
-                        result.getResolvedException() instanceof RuntimeException))
-                .andExpect(result -> org.junit.jupiter.api.Assertions.assertEquals(
-                        "Ingredient not found", result.getResolvedException().getMessage()));
+        mockMvc.perform(get("/admin/ingredients/edit/99"))
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof RuntimeException))
+                .andExpect(result -> assertEquals("Ingredient not found", result.getResolvedException().getMessage()));
     }
 
     @Test
     @WithMockUser(roles = "ADMIN")
     void deleteIngredient_ShouldRedirectWithError_WhenExceptionOccurs() throws Exception {
-        Long ingredientId = 5L;
         doThrow(new RuntimeException("Data integrity violation"))
-                .when(ingredientService).deleteIngredient(ingredientId);
+                .when(ingredientService).deleteIngredient(5L);
 
-        mockMvc.perform(get("/admin/ingredients/delete/" + ingredientId))
+        mockMvc.perform(get("/admin/ingredients/delete/5"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/admin/ingredients?error=used"));
 
-        verify(ingredientService).deleteIngredient(ingredientId);
+        verify(ingredientService).deleteIngredient(5L);
     }
 
     @Test

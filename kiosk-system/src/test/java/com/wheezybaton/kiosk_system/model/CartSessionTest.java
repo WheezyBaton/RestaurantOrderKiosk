@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -16,6 +17,10 @@ class CartSessionTest {
     @BeforeEach
     void setUp() {
         session = new CartSession();
+    }
+
+    private CartItemDto createItem(BigDecimal price) {
+        return new CartItemDto(UUID.randomUUID(), null, null, null, price, 0, List.of(), List.of(), List.of(), List.of());
     }
 
     @Test
@@ -80,12 +85,5 @@ class CartSessionTest {
         BigDecimal total = session.getTotalCartValue();
 
         assertEquals(BigDecimal.ZERO, total);
-    }
-
-    private CartItemDto createItem(BigDecimal price) {
-        CartItemDto item = new CartItemDto();
-        item.setId(UUID.randomUUID());
-        item.setTotalPrice(price);
-        return item;
     }
 }

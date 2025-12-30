@@ -33,7 +33,6 @@ class StatsServiceIntegrationTest {
         Product burger = productRepo.save(new Product(null, "Test Burger", BigDecimal.valueOf(20), "", "", true, null, null, false));
 
         createTestOrder(burger, OrderStatus.COMPLETED, 2);
-
         createTestOrder(burger, OrderStatus.NEW, 5);
 
         List<SalesStatDto> stats = statsService.getSalesStats();
@@ -50,20 +49,9 @@ class StatsServiceIntegrationTest {
     }
 
     private void createTestOrder(Product product, OrderStatus status, int quantity) {
-        Order order = new Order();
-        order.setDailyNumber(1);
-        order.setStatus(status);
-        order.setType(OrderType.EAT_IN);
-        order.setCreatedAt(LocalDateTime.now());
-
         BigDecimal lineTotal = product.getBasePrice().multiply(BigDecimal.valueOf(quantity));
-        order.setTotalAmount(lineTotal);
-
-        OrderItem item = new OrderItem();
-        item.setOrder(order);
-        item.setProduct(product);
-        item.setQuantity(quantity);
-        item.setPriceAtPurchase(product.getBasePrice());
+        Order order = new Order(null, 1, LocalDateTime.now(), status, OrderType.EAT_IN, lineTotal, null);
+        OrderItem item = new OrderItem(null, order, product, quantity, product.getBasePrice(), List.of());
 
         order.setItems(List.of(item));
         orderRepo.save(order);

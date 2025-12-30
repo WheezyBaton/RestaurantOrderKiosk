@@ -21,7 +21,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,16 +51,8 @@ class ProductServiceTest {
 
     @Test
     void createProduct_ShouldMapDtoAndSaveIngredients() {
-        CreateProductRequest req = new CreateProductRequest();
-        req.setName("New Burger");
-        req.setBasePrice(BigDecimal.TEN);
-        req.setCategoryId(1L);
-        req.setImageUrl("img.jpg");
-
-        CreateProductRequest.IngredientConfig ingConfig = new CreateProductRequest.IngredientConfig();
-        ingConfig.setIngredientId(10L);
-        ingConfig.setDefault(true);
-        req.setIngredients(List.of(ingConfig));
+        CreateProductRequest.IngredientConfig ingConfig = new CreateProductRequest.IngredientConfig(10L, true, null, null);
+        CreateProductRequest req = new CreateProductRequest("New Burger", BigDecimal.TEN, null, "img.jpg", 1L, List.of(ingConfig));
 
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(new Category()));
         when(productRepository.save(any(Product.class))).thenAnswer(i -> i.getArguments()[0]);
@@ -75,15 +66,9 @@ class ProductServiceTest {
 
     @Test
     void updateProduct_ShouldUpdateFieldsAndResetIngredients() {
-        Product existing = new Product();
-        existing.setId(1L);
-        existing.setProductIngredients(Collections.emptyList());
+        Product existing = new Product(1L, null, null, null, null, false, null, List.of(), false);
 
-        CreateProductRequest req = new CreateProductRequest();
-        req.setName("Updated Name");
-        req.setBasePrice(BigDecimal.ONE);
-        req.setCategoryId(2L);
-        req.setIngredients(Collections.emptyList());
+        CreateProductRequest req = new CreateProductRequest("Updated Name", BigDecimal.ONE, null, null, 2L, List.of());
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(categoryRepository.findById(2L)).thenReturn(Optional.of(new Category()));
@@ -97,7 +82,7 @@ class ProductServiceTest {
 
     @Test
     void deleteProduct_ShouldSetFlag() {
-        Product p = new Product();
+        Product p = new Product(1L, null, null, null, null, false, null, null, false);
         when(productRepository.findById(1L)).thenReturn(Optional.of(p));
 
         productService.deleteProduct(1L);
@@ -109,8 +94,7 @@ class ProductServiceTest {
     @Test
     void getAllProducts_ShouldReturnPagedResults() {
         Pageable pageable = PageRequest.of(0, 10);
-        Product product = new Product();
-        product.setName("Test Product");
+        Product product = new Product(null, "Test Product", null, null, null, false, null, null, false);
         Page<Product> expectedPage = new PageImpl<>(List.of(product));
 
         when(productRepository.findByDeletedFalse(pageable)).thenReturn(expectedPage);
@@ -125,9 +109,9 @@ class ProductServiceTest {
     @Test
     void searchProducts_ShouldFilterByNameCaseInsensitive() {
         String query = "burger";
-        Product p1 = new Product(); p1.setName("Bacon Burger");
-        Product p2 = new Product(); p2.setName("Fries");
-        Product p3 = new Product(); p3.setName("Cheeseburger");
+        Product p1 = new Product(null, "Bacon Burger", null, null, null, false, null, null, false);
+        Product p2 = new Product(null, "Fries", null, null, null, false, null, null, false);
+        Product p3 = new Product(null, "Cheeseburger", null, null, null, false, null, null, false);
 
         when(productRepository.findByDeletedFalse()).thenReturn(List.of(p1, p2, p3));
 
@@ -141,9 +125,7 @@ class ProductServiceTest {
     @Test
     void toggleProductAvailability_ShouldToggleStatusAndSave() {
         Long productId = 1L;
-        Product product = new Product();
-        product.setId(productId);
-        product.setAvailable(true);
+        Product product = new Product(productId, null, null, null, null, true, null, null, false);
 
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
 
@@ -155,9 +137,7 @@ class ProductServiceTest {
 
     @Test
     void saveProductEntity_ShouldDelegateToRepository() {
-        Product product = new Product();
-        product.setId(1L);
-        product.setName("Legacy Admin Product");
+        Product product = new Product(1L, "Legacy Admin Product", null, null, null, false, null, null, false);
 
         when(productRepository.save(product)).thenReturn(product);
 
@@ -169,12 +149,8 @@ class ProductServiceTest {
 
     @Test
     void updateProductIngredients_ShouldReplaceExistingIngredients() {
-        Long productId = 100L;
-        Product product = new Product();
-        product.setId(productId);
-
         ProductIngredient oldIngredient = new ProductIngredient();
-        product.setProductIngredients(List.of(oldIngredient));
+        Product product = new Product(100L, null, null, null, null, false, null, List.of(oldIngredient), false);
 
         List<ProductIngredient> newIngredients = List.of(new ProductIngredient(), new ProductIngredient());
 
@@ -187,9 +163,7 @@ class ProductServiceTest {
 
     @Test
     void updateProductIngredients_ShouldSkipDelete_WhenNoExistingIngredients() {
-        Product product = new Product();
-        product.setId(200L);
-        product.setProductIngredients(Collections.emptyList());
+        Product product = new Product(200L, null, null, null, null, false, null, List.of(), false);
 
         List<ProductIngredient> newIngredients = List.of(new ProductIngredient());
 
@@ -202,9 +176,7 @@ class ProductServiceTest {
 
     @Test
     void updateProductIngredients_ShouldSkipDelete_WhenProductIdIsNull() {
-        Product product = new Product();
-        product.setId(null);
-        product.setProductIngredients(List.of(new ProductIngredient()));
+        Product product = new Product(null, null, null, null, null, false, null, List.of(new ProductIngredient()), false);
 
         List<ProductIngredient> newIngredients = List.of(new ProductIngredient());
 
@@ -217,10 +189,7 @@ class ProductServiceTest {
 
     @Test
     void createProduct_ShouldThrow_WhenCategoryNotFound() {
-        CreateProductRequest request = new CreateProductRequest();
-        request.setName("Burger without Category");
-        request.setBasePrice(BigDecimal.TEN);
-        request.setCategoryId(999L);
+        CreateProductRequest request = new CreateProductRequest("Burger without Category", BigDecimal.TEN, null, null, 999L, null);
 
         when(categoryRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -232,14 +201,8 @@ class ProductServiceTest {
 
     @Test
     void createProduct_ShouldThrow_WhenIngredientNotFound() {
-        CreateProductRequest request = new CreateProductRequest();
-        request.setName("Burger with Bad Ingredient");
-        request.setBasePrice(BigDecimal.TEN);
-        request.setCategoryId(1L);
-
-        CreateProductRequest.IngredientConfig badConfig = new CreateProductRequest.IngredientConfig();
-        badConfig.setIngredientId(888L);
-        request.setIngredients(List.of(badConfig));
+        CreateProductRequest.IngredientConfig badConfig = new CreateProductRequest.IngredientConfig(888L, false, null, null);
+        CreateProductRequest request = new CreateProductRequest("Burger with Bad Ingredient", BigDecimal.TEN, null, null, 1L, List.of(badConfig));
 
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(new Category()));
         when(productRepository.save(any(Product.class))).thenAnswer(i -> i.getArguments()[0]);

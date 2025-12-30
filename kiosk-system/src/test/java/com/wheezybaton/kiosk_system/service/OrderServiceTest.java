@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -37,21 +38,15 @@ class OrderServiceTest {
 
     @Test
     void placeOrder_ShouldCreateOrder_WhenCartIsNotEmpty() {
-        CartItemDto itemDto = new CartItemDto();
-        itemDto.setProductId(1L);
-        itemDto.setQuantity(1);
-        itemDto.setUnitPrice(BigDecimal.TEN);
-        itemDto.setAddedIngredientIds(Collections.emptyList());
-        itemDto.setRemovedIngredientIds(Collections.emptyList());
+        CartItemDto itemDto = new CartItemDto(UUID.randomUUID(), 1L, null, BigDecimal.TEN, null, 1, List.of(), List.of(), List.of(), List.of());
 
         when(cartSession.getItems()).thenReturn(List.of(itemDto));
         when(cartSession.getTotalCartValue()).thenReturn(BigDecimal.TEN);
         when(cartSession.getOrderType()).thenReturn(OrderType.EAT_IN);
         when(productRepo.getReferenceById(1L)).thenReturn(new Product());
         when(orderRepo.save(any(Order.class))).thenAnswer(inv -> {
-            Order o = inv.getArgument(0);
-            o.setId(100L);
-            return o;
+            ((Order) inv.getArgument(0)).setId(100L);
+            return inv.getArgument(0);
         });
 
         Order result = orderService.placeOrder();
@@ -82,9 +77,8 @@ class OrderServiceTest {
 
     @Test
     void promoteOrderStatus_ShouldPromoteNewToInProgress() {
-        Order order = new Order();
-        order.setId(1L);
-        order.setStatus(OrderStatus.NEW);
+        Order order = new Order(1L, 0, null, OrderStatus.NEW, null, null, null);
+
         when(orderRepo.findById(1L)).thenReturn(Optional.of(order));
 
         orderService.promoteOrderStatus(1L);
@@ -97,9 +91,8 @@ class OrderServiceTest {
 
     @Test
     void promoteOrderStatus_ShouldPromoteInProgressToReady() {
-        Order order = new Order();
-        order.setId(1L);
-        order.setStatus(OrderStatus.IN_PROGRESS);
+        Order order = new Order(1L, 0, null, OrderStatus.IN_PROGRESS, null, null, null);
+
         when(orderRepo.findById(1L)).thenReturn(Optional.of(order));
 
         orderService.promoteOrderStatus(1L);
@@ -111,9 +104,8 @@ class OrderServiceTest {
 
     @Test
     void promoteOrderStatus_ShouldPromoteReadyToCompleted() {
-        Order order = new Order();
-        order.setId(1L);
-        order.setStatus(OrderStatus.READY);
+        Order order = new Order(1L, 0, null, OrderStatus.READY, null, null, null);
+
         when(orderRepo.findById(1L)).thenReturn(Optional.of(order));
 
         orderService.promoteOrderStatus(1L);
@@ -125,9 +117,7 @@ class OrderServiceTest {
 
     @Test
     void getOrdersReady_ShouldReturnOrdersWithStatusReady() {
-        Order readyOrder = new Order();
-        readyOrder.setId(100L);
-        readyOrder.setStatus(OrderStatus.READY);
+        Order readyOrder = new Order(100L, 0, null, OrderStatus.READY, null, null, null);
 
         when(orderRepo.findByStatus(OrderStatus.READY)).thenReturn(List.of(readyOrder));
 
@@ -140,11 +130,10 @@ class OrderServiceTest {
 
     @Test
     void promoteOrderStatus_ShouldThrowException_WhenOrderNotFound() {
-        Long nonExistentId = 999L;
-        when(orderRepo.findById(nonExistentId)).thenReturn(Optional.empty());
+        when(orderRepo.findById(999L)).thenReturn(Optional.empty());
 
         RuntimeException ex = assertThrows(RuntimeException.class, () ->
-                orderService.promoteOrderStatus(nonExistentId)
+                orderService.promoteOrderStatus(999L)
         );
 
         assertEquals("Order not found with ID: 999", ex.getMessage());
@@ -152,14 +141,11 @@ class OrderServiceTest {
 
     @Test
     void promoteOrderStatus_ShouldSkipLogic_WhenStatusIsTerminal () {
-        Long orderId = 5L;
-        Order order = new Order();
-        order.setId(orderId);
-        order.setStatus(OrderStatus.COMPLETED);
+        Order order = new Order(5L, 0, null, OrderStatus.COMPLETED, null, null, null);
 
-        when(orderRepo.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepo.findById(5L)).thenReturn(Optional.of(order));
 
-        orderService.promoteOrderStatus(orderId);
+        orderService.promoteOrderStatus(5L);
 
         verify(orderRepo, never()).save(any());
         assertEquals(OrderStatus.COMPLETED, order.getStatus());
@@ -170,21 +156,13 @@ class OrderServiceTest {
         Long productId = 1L;
         Long ingredientId = 55L;
 
-        Product productEntity = new Product();
-        productEntity.setId(productId);
-        productEntity.setBasePrice(BigDecimal.TEN);
+        Product productEntity = new Product(productId, null, BigDecimal.TEN, null, null, true, null, null, false);
         when(productRepo.getReferenceById(productId)).thenReturn(productEntity);
 
-        Ingredient ingredientEntity = new Ingredient();
-        ingredientEntity.setId(ingredientId);
-        ingredientEntity.setPrice(BigDecimal.ONE);
+        Ingredient ingredientEntity = new Ingredient(ingredientId, null, BigDecimal.ONE);
         when(ingredientRepo.getReferenceById(ingredientId)).thenReturn(ingredientEntity);
 
-        CartItemDto itemDto = new CartItemDto();
-        itemDto.setProductId(productId);
-        itemDto.setQuantity(2);
-        itemDto.setAddedIngredientIds(List.of(ingredientId));
-        itemDto.setRemovedIngredientIds(Collections.emptyList());
+        CartItemDto itemDto = new CartItemDto(UUID.randomUUID(), productId, null, null, null, 2, List.of(), List.of(), List.of(ingredientId), List.of());
 
         when(cartSession.getItems()).thenReturn(List.of(itemDto));
         when(cartSession.getOrderType()).thenReturn(OrderType.EAT_IN);

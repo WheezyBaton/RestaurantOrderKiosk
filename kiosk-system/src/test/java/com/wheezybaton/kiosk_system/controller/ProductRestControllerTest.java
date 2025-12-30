@@ -18,14 +18,13 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.never;
 
 import java.math.BigDecimal;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -35,22 +34,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(SecurityConfig.class)
 class ProductRestControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockitoBean
-    private ProductService productService;
-
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private MockMvc mockMvc;
+    @Autowired private ObjectMapper objectMapper;
+    @MockitoBean private ProductService productService;
 
     @Test
     @WithMockUser
     void getAllProducts_ShouldReturnPage() throws Exception {
-        Product p = new Product();
-        p.setId(1L);
-        p.setName("Burger");
-        p.setBasePrice(BigDecimal.TEN);
+        Product p = new Product(1L, "Burger", BigDecimal.TEN, null, null, true, null, null, false);
 
         when(productService.getAllProducts(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(p)));
@@ -65,10 +56,7 @@ class ProductRestControllerTest {
     @Test
     @WithMockUser
     void getProduct_ShouldReturnDetails() throws Exception {
-        Product p = new Product();
-        p.setId(1L);
-        p.setName("Fries");
-        p.setBasePrice(BigDecimal.valueOf(5));
+        Product p = new Product(1L, "Fries", BigDecimal.valueOf(5), null, null, true, null, null, false);
 
         when(productService.getProductById(1L)).thenReturn(p);
 
@@ -85,10 +73,7 @@ class ProductRestControllerTest {
         request.setBasePrice(BigDecimal.valueOf(20));
         request.setCategoryId(1L);
 
-        Product saved = new Product();
-        saved.setId(10L);
-        saved.setName("New Burger");
-        saved.setBasePrice(BigDecimal.valueOf(20));
+        Product saved = new Product(10L, "New Burger", BigDecimal.valueOf(20), null, null, true, null, null, false);
 
         when(productService.createProduct(any(CreateProductRequest.class))).thenReturn(saved);
 
@@ -103,10 +88,7 @@ class ProductRestControllerTest {
     @Test
     @WithMockUser
     void searchProducts_ShouldFilterByName() throws Exception {
-        Product p = new Product();
-        p.setId(1L);
-        p.setName("Cheese Burger");
-        p.setBasePrice(BigDecimal.TEN);
+        Product p = new Product(1L, "Cheese Burger", BigDecimal.TEN, null, null, true, null, null, false);
 
         when(productService.searchProducts("Burger")).thenReturn(List.of(p));
 
@@ -119,15 +101,13 @@ class ProductRestControllerTest {
     @Test
     @WithMockUser
     void getProduct_ShouldThrow404_WhenProductIsDeleted() throws Exception {
-        Product deletedProduct = new Product();
-        deletedProduct.setId(99L);
-        deletedProduct.setDeleted(true);
+        Product deletedProduct = new Product(99L, null, null, null, null, false, null, null, true);
 
         when(productService.getProductById(99L)).thenReturn(deletedProduct);
 
         mockMvc.perform(get("/api/v1/products/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(result -> org.junit.jupiter.api.Assertions.assertTrue(
+                .andExpect(result -> assertTrue(
                         result.getResolvedException() instanceof com.wheezybaton.kiosk_system.exception.ResourceNotFoundException));
     }
 
@@ -139,10 +119,7 @@ class ProductRestControllerTest {
         request.setBasePrice(BigDecimal.valueOf(25));
         request.setCategoryId(1L);
 
-        Product updatedProduct = new Product();
-        updatedProduct.setId(1L);
-        updatedProduct.setName("Updated Burger");
-        updatedProduct.setBasePrice(BigDecimal.valueOf(25));
+        Product updatedProduct = new Product(1L, "Updated Burger", BigDecimal.valueOf(25), null, null, true, null, null, false);
 
         when(productService.updateProduct(any(Long.class), any(CreateProductRequest.class)))
                 .thenReturn(updatedProduct);
@@ -159,39 +136,22 @@ class ProductRestControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void deleteProduct_ShouldReturnNoContent() throws Exception {
-
         mockMvc.perform(delete("/api/v1/products/1")
                         .with(csrf()))
                 .andExpect(status().isNoContent());
 
-        org.mockito.Mockito.verify(productService).deleteProduct(1L);
+        verify(productService).deleteProduct(1L);
     }
 
     @Test
     @WithMockUser
     void getProduct_ShouldMapCategoryAndIngredients() throws Exception {
-        Product product = new Product();
-        product.setId(2L);
-        product.setName("Cheeseburger");
-        product.setBasePrice(BigDecimal.valueOf(15));
+        Category category = new Category(null, "Burgers", null, null);
+        Ingredient ing = new Ingredient(10L, "Cheese", BigDecimal.ONE);
 
-        Category category = new com.wheezybaton.kiosk_system.model.Category();
-        category.setName("Burgers");
-        product.setCategory(category);
+        ProductIngredient pi = new ProductIngredient(null, null, ing, true, 0, BigDecimal.valueOf(2), 5);
 
-        Ingredient ing = new com.wheezybaton.kiosk_system.model.Ingredient();
-        ing.setId(10L);
-        ing.setName("Cheese");
-        ing.setPrice(BigDecimal.ONE);
-
-        ProductIngredient pi = new com.wheezybaton.kiosk_system.model.ProductIngredient();
-        pi.setIngredient(ing);
-        pi.setCustomPrice(BigDecimal.valueOf(2));
-
-        pi.setDefault(true);
-        pi.setMaxQuantity(5);
-
-        product.setProductIngredients(List.of(pi));
+        Product product = new Product(2L, "Cheeseburger", BigDecimal.valueOf(15), null, null, true, category, List.of(pi), false);
 
         when(productService.getProductById(2L)).thenReturn(product);
 

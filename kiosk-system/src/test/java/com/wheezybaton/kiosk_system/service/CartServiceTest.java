@@ -32,26 +32,14 @@ class CartServiceTest {
 
     @Test
     void addToCart_ShouldCalculatePriceWithIngredients() {
-        Product product = new Product();
-        product.setId(1L);
-        product.setName("Pizza");
-        product.setBasePrice(new BigDecimal("30.00"));
-
-        Ingredient cheese = new Ingredient(10L, "Cheese", new BigDecimal("5.00"));
-
-        ProductIngredient pi = new ProductIngredient();
-        pi.setIngredient(cheese);
-        pi.setCustomPrice(new BigDecimal("4.00"));
-        pi.setProduct(product);
-
-        product.setProductIngredients(List.of(pi));
+        ProductIngredient pi = new ProductIngredient(null, null, new Ingredient(10L, "Cheese", new BigDecimal("5.00")), false, 0, new BigDecimal("4.00"), 1);
+        Product product = new Product(1L, "Pizza", new BigDecimal("30.00"), null, null, true, null, List.of(pi), false);
 
         when(productRepo.findById(1L)).thenReturn(Optional.of(product));
 
         cartService.addToCart(1L, List.of(10L), null, 2);
 
         ArgumentCaptor<CartItemDto> captor = ArgumentCaptor.forClass(CartItemDto.class);
-
         verify(cartSession).addItem(captor.capture());
 
         CartItemDto capturedItem = captor.getValue();

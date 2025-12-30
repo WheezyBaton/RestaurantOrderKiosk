@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.hasEntry;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -50,16 +51,10 @@ class KioskControllerTest {
 
     @Test
     void addCustomProduct_ShouldProcessIngredientsFromRequest() throws Exception {
-        Product product = new Product();
-        product.setId(1L);
+        ProductIngredient pi1 = new ProductIngredient(null, null, new Ingredient(10L, null, null), true, 0, null, 1);
+        ProductIngredient pi2 = new ProductIngredient(null, null, new Ingredient(20L, null, null), false, 0, null, 1);
 
-        Ingredient ing1 = new Ingredient(); ing1.setId(10L);
-        Ingredient ing2 = new Ingredient(); ing2.setId(20L);
-
-        ProductIngredient pi1 = new ProductIngredient(); pi1.setIngredient(ing1); pi1.setDefault(true);
-        ProductIngredient pi2 = new ProductIngredient(); pi2.setIngredient(ing2); pi2.setDefault(false);
-
-        product.setProductIngredients(List.of(pi1, pi2));
+        Product product = new Product(1L, null, null, null, null, true, null, List.of(pi1, pi2), false);
 
         when(productService.getProductById(1L)).thenReturn(product);
 
@@ -106,29 +101,11 @@ class KioskControllerTest {
         Long productId = 1L;
         UUID cartItemId = UUID.randomUUID();
 
-        Product product = new Product();
-        product.setId(productId);
-        product.setName("Configurable Burger");
+        ProductIngredient piCheese = new ProductIngredient(null, null, new Ingredient(10L, "Cheese", null), true, 0, null, 1);
+        ProductIngredient piOnion = new ProductIngredient(null, null, new Ingredient(20L, "Onion", null), false, 0, null, 1);
+        Product product = new Product(productId, "Configurable Burger", null, null, null, true, null, List.of(piCheese, piOnion), false);
 
-        Ingredient cheese = new Ingredient(); cheese.setId(10L); cheese.setName("Cheese");
-        Ingredient onion = new Ingredient(); onion.setId(20L); onion.setName("Onion");
-
-        ProductIngredient piCheese = new ProductIngredient();
-        piCheese.setIngredient(cheese);
-        piCheese.setDefault(true);
-
-        ProductIngredient piOnion = new ProductIngredient();
-        piOnion.setIngredient(onion);
-        piOnion.setDefault(false);
-
-        product.setProductIngredients(List.of(piCheese, piOnion));
-
-        CartItemDto cartItem = new CartItemDto();
-        cartItem.setId(cartItemId);
-        cartItem.setProductId(productId);
-        cartItem.setQuantity(5);
-        cartItem.setRemovedIngredientIds(List.of(10L));
-        cartItem.setAddedIngredientIds(List.of(20L));
+        CartItemDto cartItem = new CartItemDto(cartItemId, productId, null, null, null, 5, List.of(), List.of(), List.of(20L), List.of(10L));
 
         when(productService.getProductById(productId)).thenReturn(product);
         when(cartService.getCartItem(cartItemId)).thenReturn(cartItem);
@@ -139,58 +116,45 @@ class KioskControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("cartItemId", cartItemId))
                 .andExpect(model().attribute("mainQuantity", 5))
-                .andExpect(model().attribute("ingredientQuantities", org.hamcrest.Matchers.hasEntry(10L, 0)))
-                .andExpect(model().attribute("ingredientQuantities", org.hamcrest.Matchers.hasEntry(20L, 1)));
+                .andExpect(model().attribute("ingredientQuantities", hasEntry(10L, 0)))
+                .andExpect(model().attribute("ingredientQuantities", hasEntry(20L, 1)));
     }
 
     @Test
     void addToCart_ShouldRemoveOldItemAndRedirectToCheckout_WhenUpdating() throws Exception {
-        Long productId = 1L;
         UUID oldCartItemId = UUID.randomUUID();
-        Product product = new Product();
-        product.setId(productId);
-        product.setBasePrice(BigDecimal.TEN);
-        product.setProductIngredients(Collections.emptyList());
+        Product product = new Product(1L, null, BigDecimal.TEN, null, null, true, null, List.of(), false);
 
-        when(productService.getProductById(productId)).thenReturn(product);
+        when(productService.getProductById(1L)).thenReturn(product);
 
         mockMvc.perform(post("/cart/add-custom")
                         .with(csrf())
-                        .param("productId", productId.toString())
+                        .param("productId", "1")
                         .param("quantity", "1")
                         .param("cartItemId", oldCartItemId.toString()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(view().name("redirect:/checkout"));
 
         verify(cartService).removeFromCart(oldCartItemId);
-        verify(cartService).addToCart(eq(productId), anyList(), anyList(), eq(1));
+        verify(cartService).addToCart(eq(1L), anyList(), anyList(), eq(1));
     }
 
     @Test
     void addToCart_ShouldIgnoreInvalidIngredientQuantity() throws Exception {
-        Long productId = 1L;
-        Product product = new Product();
-        product.setId(productId);
-        product.setBasePrice(BigDecimal.TEN);
+        ProductIngredient pi = new ProductIngredient(null, null, new Ingredient(999L, null, null), false, 0, null, 1);
+        Product product = new Product(1L, null, BigDecimal.TEN, null, null, true, null, List.of(pi), false);
 
-        Ingredient ing = new Ingredient();
-        ing.setId(999L);
-        ProductIngredient pi = new ProductIngredient();
-        pi.setIngredient(ing);
-        pi.setDefault(false);
-        product.setProductIngredients(List.of(pi));
-
-        when(productService.getProductById(productId)).thenReturn(product);
+        when(productService.getProductById(1L)).thenReturn(product);
 
         mockMvc.perform(post("/cart/add-custom")
                         .with(csrf())
-                        .param("productId", productId.toString())
+                        .param("productId", "1")
                         .param("quantity", "1")
                         .param("qty_999", "invalid_number"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(view().name("redirect:/menu"));
 
-        verify(cartService).addToCart(eq(productId), anyList(), anyList(), eq(1));
+        verify(cartService).addToCart(eq(1L), anyList(), anyList(), eq(1));
     }
 
     @Test

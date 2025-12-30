@@ -5,6 +5,7 @@ import com.wheezybaton.kiosk_system.dto.OrderStatusHistoryDto;
 import com.wheezybaton.kiosk_system.model.Category;
 import com.wheezybaton.kiosk_system.model.Ingredient;
 import com.wheezybaton.kiosk_system.model.Product;
+import com.wheezybaton.kiosk_system.model.ProductIngredient;
 import com.wheezybaton.kiosk_system.service.CategoryService;
 import com.wheezybaton.kiosk_system.service.IngredientService;
 import com.wheezybaton.kiosk_system.service.ProductService;
@@ -21,12 +22,14 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.context.annotation.Import;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
@@ -40,59 +43,39 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(SecurityConfig.class)
 class AdminControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockitoBean
-    private ProductService productService;
-
-    @MockitoBean
-    private CategoryService categoryService;
-
-    @MockitoBean
-    private IngredientService ingredientService;
-
-    @MockitoBean
-    private StatsService statsService;
+    @Autowired private MockMvc mockMvc;
+    @MockitoBean private ProductService productService;
+    @MockitoBean private CategoryService categoryService;
+    @MockitoBean private IngredientService ingredientService;
+    @MockitoBean private StatsService statsService;
 
     @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    @WithMockUser(roles = "ADMIN")
     void dashboard_ShouldAddGroupedHistoryToModel() throws Exception {
         OrderStatusHistoryDto step = new OrderStatusHistoryDto(1L, null, "NEW", LocalDateTime.now());
-
         OrderHistorySummaryDto mockSummary = new OrderHistorySummaryDto(1L, List.of(step));
 
-        when(productService.getAllProducts()).thenReturn(Collections.emptyList());
-        when(statsService.getSalesStats()).thenReturn(Collections.emptyList());
+        when(productService.getAllProducts()).thenReturn(List.of());
+        when(statsService.getSalesStats()).thenReturn(List.of());
         when(statsService.getGroupedStatusHistory()).thenReturn(List.of(mockSummary));
-
         when(statsService.getTotalRevenue()).thenReturn(BigDecimal.ZERO);
-        when(statsService.getMonthlyRevenue()).thenReturn(BigDecimal.ZERO);
-        when(statsService.getTodayRevenue()).thenReturn(BigDecimal.ZERO);
-        when(statsService.getMonthlyOrdersCount()).thenReturn(0L);
-        when(statsService.getTodayOrdersCount()).thenReturn(0L);
 
         mockMvc.perform(get("/admin"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/dashboard"))
-                .andExpect(model().attributeExists("groupedHistory"))
                 .andExpect(model().attribute("groupedHistory", hasSize(1)));
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    @WithMockUser(roles = "ADMIN")
     void dashboard_ShouldAddAttributesToModel() throws Exception {
         OrderStatusHistoryDto step = new OrderStatusHistoryDto(1L, null, "NEW", LocalDateTime.now());
-        OrderHistorySummaryDto mockSummary = new OrderHistorySummaryDto(1L, List.of(step));
+        OrderHistorySummaryDto summary = new OrderHistorySummaryDto(1L, List.of(step));
 
-        when(productService.getAllProducts()).thenReturn(Collections.emptyList());
-        when(statsService.getSalesStatsGroupedByMonth()).thenReturn(Collections.emptyMap());
-        when(statsService.getGroupedStatusHistory()).thenReturn(List.of(mockSummary));
+        when(productService.getAllProducts()).thenReturn(List.of());
+        when(statsService.getSalesStatsGroupedByMonth()).thenReturn(Map.of());
+        when(statsService.getGroupedStatusHistory()).thenReturn(List.of(summary));
         when(statsService.getTotalRevenue()).thenReturn(BigDecimal.ZERO);
-        when(statsService.getMonthlyRevenue()).thenReturn(BigDecimal.ZERO);
-        when(statsService.getTodayRevenue()).thenReturn(BigDecimal.ZERO);
-        when(statsService.getMonthlyOrdersCount()).thenReturn(0L);
-        when(statsService.getTodayOrdersCount()).thenReturn(0L);
 
         mockMvc.perform(get("/admin"))
                 .andExpect(status().isOk())
@@ -101,20 +84,19 @@ class AdminControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    @WithMockUser(roles = "ADMIN")
     void toggleAvailability_ShouldCallServiceAndRedirect() throws Exception {
         mockMvc.perform(get("/admin/products/toggle/{id}", 1L))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/admin"));
-
         verify(productService).toggleProductAvailability(1L);
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    @WithMockUser(roles = "ADMIN")
     void showAddForm_ShouldReturnFormView() throws Exception {
-        when(categoryService.getAllCategories()).thenReturn(Collections.emptyList());
-        when(ingredientService.getAllIngredients()).thenReturn(Collections.emptyList());
+        when(categoryService.getAllCategories()).thenReturn(List.of());
+        when(ingredientService.getAllIngredients()).thenReturn(List.of());
 
         mockMvc.perform(get("/admin/products/add"))
                 .andExpect(status().isOk())
@@ -123,11 +105,10 @@ class AdminControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    @WithMockUser(roles = "ADMIN")
     void saveProduct_WithValidationErrors_ShouldReturnForm() throws Exception {
-        MockMultipartFile emptyFile = new MockMultipartFile("imageFile", "empty.png", "image/png", new byte[0]);
         mockMvc.perform(multipart("/admin/products/save")
-                        .file(emptyFile)
+                        .file(new MockMultipartFile("imageFile", "empty.png", "image/png", new byte[0]))
                         .param("name", "Burger Bez Ceny")
                         .param("categoryId", "1")
                         .with(csrf()))
@@ -137,22 +118,18 @@ class AdminControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    @WithMockUser(roles = "ADMIN")
     void saveProduct_SuccessfulCreate_ShouldRedirect() throws Exception {
-        Category category = new Category();
-        category.setId(1L);
-        when(categoryService.getAllCategories()).thenReturn(List.of(category));
+        when(categoryService.getAllCategories())
+                .thenReturn(List.of(new Category(1L, null, null, null)));
 
-        Product savedProduct = new Product();
-        savedProduct.setId(1L);
-        savedProduct.setName("Burger");
+        Product savedProduct = new Product(1L, "Burger", null, null, null, true, null, null, false);
+
         when(productService.saveProductEntity(any(Product.class))).thenReturn(savedProduct);
         when(ingredientService.getIngredientById(anyLong())).thenReturn(new Ingredient());
 
-        MockMultipartFile file = new MockMultipartFile("imageFile", "test.png", "image/png", "content".getBytes());
-
         mockMvc.perform(multipart("/admin/products/save")
-                        .file(file)
+                        .file(new MockMultipartFile("imageFile", "test.png", "image/png", "content".getBytes()))
                         .param("name", "Burger")
                         .param("basePrice", "25.50")
                         .param("categoryId", "1")
@@ -168,17 +145,16 @@ class AdminControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    @WithMockUser(roles = "ADMIN")
     void deleteProduct_ShouldCallServiceAndRedirect() throws Exception {
         mockMvc.perform(get("/admin/products/delete/{id}", 1L))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/admin"));
-
         verify(productService).deleteProduct(1L);
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    @WithMockUser(roles = "ADMIN")
     void downloadReport_ShouldReturnCsvFile() throws Exception {
         byte[] csvContent = "col1,col2\nval1,val2".getBytes();
         when(statsService.getSalesCsv()).thenReturn(csvContent);
@@ -191,15 +167,13 @@ class AdminControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    @WithMockUser(roles = "ADMIN")
     void showEditForm_ShouldLoadProductAndReturnView() throws Exception {
-        Product product = new Product();
-        product.setId(1L);
-        product.setName("Edit Me");
+        Product product = new Product(1L, "Edit Me", null, null, null, true, null, null, false);
 
         when(productService.getProductById(1L)).thenReturn(product);
-        when(categoryService.getAllCategories()).thenReturn(Collections.emptyList());
-        when(ingredientService.getAllIngredients()).thenReturn(Collections.emptyList());
+        when(categoryService.getAllCategories()).thenReturn(List.of());
+        when(ingredientService.getAllIngredients()).thenReturn(List.of());
 
         mockMvc.perform(get("/admin/products/edit/{id}", 1L))
                 .andExpect(status().isOk())
@@ -208,107 +182,82 @@ class AdminControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    @WithMockUser(roles = "ADMIN")
     void saveProduct_NewProductNoImage_ShouldSetPlaceholder() throws Exception {
-        Category category = new Category();
-        category.setId(1L);
-        when(categoryService.getAllCategories()).thenReturn(List.of(category));
+        when(categoryService.getAllCategories())
+                .thenReturn(List.of(new Category(1L, null, null, null)));
+
         when(productService.saveProductEntity(any(Product.class))).thenAnswer(i -> {
-            Product p = i.getArgument(0);
-            p.setId(10L);
-            return p;
+            ((Product) i.getArgument(0)).setId(10L);
+            return i.getArgument(0);
         });
 
-        MockMultipartFile emptyFile = new MockMultipartFile("imageFile", "", "image/png", new byte[0]);
-
         mockMvc.perform(multipart("/admin/products/save")
-                        .file(emptyFile)
+                        .file(new MockMultipartFile("imageFile", "", "image/png", new byte[0]))
                         .param("name", "New Product")
                         .param("basePrice", "10.00")
                         .param("categoryId", "1")
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection());
 
-        ArgumentCaptor<Product> productCaptor = ArgumentCaptor.forClass(Product.class);
-        verify(productService).saveProductEntity(productCaptor.capture());
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        verify(productService).saveProductEntity(captor.capture());
 
-        Product captured = productCaptor.getValue();
-        org.junit.jupiter.api.Assertions.assertEquals("placeholder.png", captured.getImageUrl());
-        org.junit.jupiter.api.Assertions.assertFalse(captured.isAvailable());
+        assertEquals("placeholder.png", captor.getValue().getImageUrl());
+        assertFalse(captor.getValue().isAvailable());
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    @WithMockUser(roles = "ADMIN")
     void saveProduct_UpdateExisting_ShouldPreserveFields_WhenNoNewImage() throws Exception {
-        Long productId = 5L;
-        Category category = new Category();
-        category.setId(1L);
+        Product existing = new Product(5L, "Old Name", null, null, "original.png", true, null, null, false);
 
-        Product existingProduct = new Product();
-        existingProduct.setId(productId);
-        existingProduct.setName("Old Name");
-        existingProduct.setAvailable(true);
-        existingProduct.setImageUrl("original.png");
-
-        when(categoryService.getAllCategories()).thenReturn(List.of(category));
-        when(productService.getProductById(productId)).thenReturn(existingProduct);
+        when(categoryService.getAllCategories()).thenReturn(List.of(new Category(1L, null, null, null)));
+        when(productService.getProductById(5L)).thenReturn(existing);
         when(productService.saveProductEntity(any(Product.class))).thenAnswer(i -> i.getArgument(0));
 
-        MockMultipartFile emptyFile = new MockMultipartFile("imageFile", "", "image/png", new byte[0]);
-
         mockMvc.perform(multipart("/admin/products/save")
-                        .file(emptyFile)
-                        .param("id", productId.toString())
+                        .file(new MockMultipartFile("imageFile", "", "image/png", new byte[0]))
+                        .param("id", "5")
                         .param("name", "New Name")
                         .param("basePrice", "20.00")
                         .param("categoryId", "1")
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection());
 
-        ArgumentCaptor<Product> productCaptor = ArgumentCaptor.forClass(Product.class);
-        verify(productService).saveProductEntity(productCaptor.capture());
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        verify(productService).saveProductEntity(captor.capture());
 
-        Product captured = productCaptor.getValue();
-        org.junit.jupiter.api.Assertions.assertEquals("New Name", captured.getName());
-        org.junit.jupiter.api.Assertions.assertTrue(captured.isAvailable());
-        org.junit.jupiter.api.Assertions.assertEquals("original.png", captured.getImageUrl());
+        assertEquals("New Name", captor.getValue().getName());
+        assertTrue(captor.getValue().isAvailable());
+        assertEquals("original.png", captor.getValue().getImageUrl());
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    @WithMockUser(roles = "ADMIN")
     void saveProduct_UpdateNonExistent_ShouldReturn404() throws Exception {
-        Long nonExistentId = 999L;
-        Long categoryId = 1L;
-
-        Category mockCategory = new Category();
-        mockCategory.setId(categoryId);
-        mockCategory.setName("Test Category");
-        when(categoryService.getAllCategories()).thenReturn(List.of(mockCategory));
-
-        when(productService.getProductById(nonExistentId))
+        when(categoryService.getAllCategories())
+                .thenReturn(List.of(new Category(1L, "Test Category", null, null)));
+        when(productService.getProductById(999L))
                 .thenThrow(new com.wheezybaton.kiosk_system.exception.ResourceNotFoundException("Product not found"));
 
-        MockMultipartFile emptyFile = new MockMultipartFile("imageFile", "test.png", "image/png", new byte[0]);
-
         mockMvc.perform(multipart("/admin/products/save")
-                        .file(emptyFile)
-                        .param("id", nonExistentId.toString())
+                        .file(new MockMultipartFile("imageFile", "test.png", "image/png", "content".getBytes()))
+                        .param("id", "999")
                         .param("name", "Ghost Product")
                         .param("basePrice", "10.00")
-                        .param("categoryId", categoryId.toString())
+                        .param("categoryId", "1")
                         .with(csrf()))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    @WithMockUser(roles = "ADMIN")
     void saveProduct_ImageSaveError_ShouldThrowException() throws Exception {
-        Category category = new Category();
-        category.setId(1L);
-        when(categoryService.getAllCategories()).thenReturn(List.of(category));
+        when(categoryService.getAllCategories()).thenReturn(List.of(new Category(1L, null, null, null)));
 
-        MockMultipartFile badFile = org.mockito.Mockito.spy(new MockMultipartFile("imageFile", "test.jpg", "image/jpeg", "content".getBytes()));
-        org.mockito.Mockito.doThrow(new java.io.IOException("Disk error")).when(badFile).getInputStream();
+        MockMultipartFile badFile = spy(new MockMultipartFile("imageFile", "test.jpg", "image/jpeg", "content".getBytes()));
+        doThrow(new IOException("Disk error")).when(badFile).getInputStream();
 
         mockMvc.perform(multipart("/admin/products/save")
                         .file(badFile)
@@ -316,40 +265,28 @@ class AdminControllerTest {
                         .param("basePrice", "10.00")
                         .param("categoryId", "1")
                         .with(csrf()))
-                .andExpect(result -> org.junit.jupiter.api.Assertions.assertTrue(
-                        result.getResolvedException() instanceof java.io.IOException));
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof IOException));
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    @WithMockUser(roles = "ADMIN")
     void showEditForm_WithIngredients_ShouldMapActiveIngredients() throws Exception {
-        Long productId = 1L;
-        Product product = new Product();
-        product.setId(productId);
-        product.setName("Product With Ingredients");
+        Ingredient ing1 = new Ingredient(101L, "Lettuce", null);
+        Ingredient ing2 = new Ingredient(102L, "Tomato", null);
 
-        Ingredient ing1 = new Ingredient(); ing1.setId(101L); ing1.setName("Lettuce");
-        Ingredient ing2 = new Ingredient(); ing2.setId(102L); ing2.setName("Tomato");
+        ProductIngredient pi1 = new ProductIngredient(null, null, ing1, true, 0, null, 1);
+        ProductIngredient pi2 = new ProductIngredient(null, null, ing2, false, 0, null, 1);
 
-        com.wheezybaton.kiosk_system.model.ProductIngredient pi1 = new com.wheezybaton.kiosk_system.model.ProductIngredient();
-        pi1.setIngredient(ing1);
-        pi1.setDefault(true);
+        Product product = new Product(1L, "Product With Ingredients", null, null, null, true, null, List.of(pi1, pi2), false);
 
-        com.wheezybaton.kiosk_system.model.ProductIngredient pi2 = new com.wheezybaton.kiosk_system.model.ProductIngredient();
-        pi2.setIngredient(ing2);
-        pi2.setDefault(false);
+        when(productService.getProductById(1L)).thenReturn(product);
+        when(categoryService.getAllCategories()).thenReturn(List.of());
+        when(ingredientService.getAllIngredients()).thenReturn(List.of());
 
-        product.setProductIngredients(List.of(pi1, pi2));
-
-        when(productService.getProductById(productId)).thenReturn(product);
-        when(categoryService.getAllCategories()).thenReturn(Collections.emptyList());
-        when(ingredientService.getAllIngredients()).thenReturn(Collections.emptyList());
-
-        mockMvc.perform(get("/admin/products/edit/{id}", productId))
+        mockMvc.perform(get("/admin/products/edit/{id}", 1L))
                 .andExpect(status().isOk())
-                .andExpect(model().attributeExists("activeIngredients"))
-                .andExpect(model().attribute("activeIngredients", org.hamcrest.Matchers.hasEntry(101L, pi1)))
-                .andExpect(model().attribute("activeIngredients", org.hamcrest.Matchers.hasEntry(102L, pi2)));
+                .andExpect(model().attribute("activeIngredients", hasEntry(101L, pi1)))
+                .andExpect(model().attribute("activeIngredients", hasEntry(102L, pi2)));
     }
 
     @Test
