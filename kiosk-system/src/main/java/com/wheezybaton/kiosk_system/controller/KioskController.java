@@ -51,11 +51,7 @@ public class KioskController {
     }
 
     @GetMapping("/configure")
-    public String showConfiguration(
-            @RequestParam Long productId,
-            @RequestParam(required = false) UUID cartItemId,
-            Model model
-    ) {
+    public String showConfiguration(@RequestParam Long productId, @RequestParam(required = false) UUID cartItemId, Model model) {
         Product product = productService.getProductById(productId);
         model.addAttribute("product", product);
 
@@ -102,9 +98,7 @@ public class KioskController {
     public String addCustomProduct(
             @RequestParam Long productId,
             @RequestParam int quantity,
-            @RequestParam(required = false) UUID cartItemId,
-            HttpServletRequest request
-    ) {
+            @RequestParam(required = false) UUID cartItemId, HttpServletRequest request) {
         log.debug("Processing product configuration. ProductID: {}, Quantity: {}", productId, quantity);
 
         if (cartItemId != null) {
@@ -144,8 +138,7 @@ public class KioskController {
             }
         }
 
-        log.info("Adding/Updating cart item. Product: {}, Added Ingredients: {}, Removed Ingredients: {}",
-                product.getName(), addedIds, removedIds);
+        log.info("Adding/Updating cart item. Product: {}, Added Ingredients: {}, Removed Ingredients: {}", product.getName(), addedIds, removedIds);
 
         cartService.addToCart(productId, addedIds, removedIds, quantity);
 

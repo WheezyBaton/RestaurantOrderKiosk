@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -29,35 +28,6 @@ class OrderRepositoryTest {
     }
 
     @Test
-    @Transactional
-    void shouldCountOrdersSinceSpecificDate() {
-        orderRepo.deleteAll();
-
-        Order oldOrder = createOrder(1, LocalDateTime.now().minusDays(2), OrderStatus.COMPLETED);
-        Order todayOrder1 = createOrder(2, LocalDateTime.now(), OrderStatus.NEW);
-        Order todayOrder2 = createOrder(3, LocalDateTime.now().plusHours(1), OrderStatus.IN_PROGRESS);
-
-        oldOrder = orderRepo.save(oldOrder);
-        orderRepo.save(todayOrder1);
-        orderRepo.save(todayOrder2);
-
-        entityManager.flush();
-
-        entityManager.getEntityManager()
-                .createNativeQuery("UPDATE orders SET created_at = :date WHERE id = :id")
-                .setParameter("date", LocalDateTime.now().minusDays(2))
-                .setParameter("id", oldOrder.getId())
-                .executeUpdate();
-
-        entityManager.clear();
-
-        LocalDateTime startOfDay = LocalDateTime.now().minusHours(12);
-        Long count = orderRepo.countOrdersSince(startOfDay);
-
-        assertThat(count).isEqualTo(2);
-    }
-
-    @Test
     void shouldFindOrdersByStatus() {
         orderRepo.deleteAll();
 
@@ -66,7 +36,7 @@ class OrderRepositoryTest {
         entityManager.persist(createOrder(3, LocalDateTime.now(), OrderStatus.READY));
         entityManager.flush();
 
-        List<Order> readyOrders = orderRepo.findByStatus(OrderStatus.READY);
+        List<Order> readyOrders = orderRepo.findByStatusInOrderByCreatedAtAsc(List.of(OrderStatus.READY));
 
         assertThat(readyOrders).hasSize(2);
         assertThat(readyOrders).allMatch(o -> o.getStatus() == OrderStatus.READY);

@@ -106,7 +106,7 @@ public class OrderService {
     }
 
     public List<Order> getOrdersReady() {
-        List<Order> orders = orderRepo.findByStatus(OrderStatus.READY);
+        List<Order> orders = orderRepo.findByStatusInOrderByCreatedAtAsc(List.of(OrderStatus.READY));
         log.debug("Found {} orders ready for pickup.", orders.size());
         return orders;
     }

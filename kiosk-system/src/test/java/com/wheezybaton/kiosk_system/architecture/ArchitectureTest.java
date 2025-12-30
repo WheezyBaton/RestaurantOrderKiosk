@@ -37,7 +37,7 @@ public class ArchitectureTest {
                     .layer("Controller").definedBy("..controller..")
                     .layer("Service").definedBy("..service..")
                     .layer("Repository").definedBy("..repository..")
-                    .layer("Model").definedBy("..model..") // Np. encje, DTO
+                    .layer("Model").definedBy("..model..")
 
                     .whereLayer("Controller").mayNotBeAccessedByAnyLayer()
                     .whereLayer("Service").mayOnlyBeAccessedByLayers("Controller", "Service")

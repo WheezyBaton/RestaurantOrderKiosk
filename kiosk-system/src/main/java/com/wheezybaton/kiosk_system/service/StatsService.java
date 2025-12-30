@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -68,55 +67,35 @@ public class StatsService {
     }
 
     public Map<String, List<SalesStatDto>> getSalesStatsGroupedByMonth() {
-        log.debug("Fetching sales statistics grouped by month...");
-
+        log.debug("Fetching sales statistics grouped by month (Optimized SQL)...");
         String sql = """
             SELECT 
-                o.created_at, 
-                p.name AS product_name, 
-                oi.quantity, 
-                oi.price_at_purchase 
+                TO_CHAR(o.created_at, 'YYYY-MM') AS month,
+                p.name AS product_name,
+                SUM(oi.quantity) AS total_quantity,
+                SUM(oi.quantity * oi.price_at_purchase) AS total_revenue
             FROM order_item oi
             JOIN product p ON oi.product_id = p.id
             JOIN orders o ON oi.order_id = o.id
             WHERE o.status != 'CANCELLED'
+            GROUP BY TO_CHAR(o.created_at, 'YYYY-MM'), p.name
+            ORDER BY month DESC, total_revenue DESC
         """;
 
-        Map<String, Map<String, SalesStatDto>> rawMap = new HashMap<>();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+        return jdbcTemplate.query(sql, (rs) -> {
+            Map<String, List<SalesStatDto>> result = new LinkedHashMap<>();
 
-        jdbcTemplate.query(sql, (rs) -> {
-            LocalDateTime createdAt = rs.getTimestamp("created_at").toLocalDateTime();
-            String month = createdAt.format(formatter);
-            String productName = rs.getString("product_name");
-            int quantity = rs.getInt("quantity");
-            BigDecimal price = rs.getBigDecimal("price_at_purchase");
-            BigDecimal revenue = price.multiply(BigDecimal.valueOf(quantity));
+            while (rs.next()) {
+                String month = rs.getString("month");
 
-            rawMap.computeIfAbsent(month, k -> new HashMap<>())
-                    .compute(productName, (k, v) -> {
-                        if (v == null) {
-                            return new SalesStatDto(productName, (long) quantity, revenue);
-                        } else {
-                            v.setTotalQuantity(v.getTotalQuantity() + quantity);
-                            v.setTotalRevenue(v.getTotalRevenue().add(revenue));
-                            return v;
-                        }
-                    });
+                SalesStatDto dto = new SalesStatDto();
+                dto.setProductName(rs.getString("product_name"));
+                dto.setTotalQuantity(rs.getLong("total_quantity"));
+                dto.setTotalRevenue(rs.getBigDecimal("total_revenue"));
+                result.computeIfAbsent(month, k -> new ArrayList<>()).add(dto);
+            }
+            return result;
         });
-
-        Map<String, List<SalesStatDto>> result = new LinkedHashMap<>();
-
-        rawMap.entrySet().stream()
-                .sorted(Map.Entry.<String, Map<String, SalesStatDto>>comparingByKey().reversed())
-                .forEach(entry -> {
-                    List<SalesStatDto> stats = new ArrayList<>(entry.getValue().values());
-                    stats.sort(Comparator.comparing(SalesStatDto::getTotalRevenue).reversed());
-                    result.put(entry.getKey(), stats);
-                });
-
-        log.debug("Aggregated sales stats for {} months.", result.size());
-        return result;
     }
 
     @Transactional
@@ -154,7 +133,13 @@ public class StatsService {
 
     public BigDecimal getMonthlyRevenue() {
         log.debug("Calculating revenue for the current month...");
-        String sql = "SELECT SUM(total_amount) FROM orders WHERE status != 'CANCELLED' AND EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM CURRENT_DATE)";
+        String sql = """
+            SELECT SUM(total_amount) 
+            FROM orders 
+            WHERE status != 'CANCELLED' 
+            AND EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM CURRENT_DATE)
+            AND EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+        """;
         try {
             BigDecimal total = jdbcTemplate.queryForObject(sql, BigDecimal.class);
             return total != null ? total : BigDecimal.ZERO;
@@ -166,7 +151,13 @@ public class StatsService {
 
     public Long getMonthlyOrdersCount() {
         log.debug("Counting orders for the current month...");
-        String sql = "SELECT COUNT(*) FROM orders WHERE status != 'CANCELLED' AND EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM CURRENT_DATE)";
+        String sql = """
+            SELECT COUNT(*) 
+            FROM orders 
+            WHERE status != 'CANCELLED' 
+              AND EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM CURRENT_DATE)
+              AND EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+        """;
         try {
             Long count = jdbcTemplate.queryForObject(sql, Long.class);
             return count != null ? count : 0L;

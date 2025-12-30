@@ -119,13 +119,13 @@ class OrderServiceTest {
     void getOrdersReady_ShouldReturnOrdersWithStatusReady() {
         Order readyOrder = new Order(100L, 0, null, OrderStatus.READY, null, null, null);
 
-        when(orderRepo.findByStatus(OrderStatus.READY)).thenReturn(List.of(readyOrder));
+        when(orderRepo.findByStatusInOrderByCreatedAtAsc(List.of(OrderStatus.READY))).thenReturn(List.of(readyOrder));
 
         List<Order> result = orderService.getOrdersReady();
 
         assertEquals(1, result.size());
         assertEquals(OrderStatus.READY, result.get(0).getStatus());
-        verify(orderRepo).findByStatus(OrderStatus.READY);
+        verify(orderRepo).findByStatusInOrderByCreatedAtAsc(List.of(OrderStatus.READY));
     }
 
     @Test

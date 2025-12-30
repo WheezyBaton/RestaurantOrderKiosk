@@ -82,14 +82,11 @@ public class AdminController {
     @PostMapping("/products/save")
     @Transactional
     public String saveProduct(
-            @Valid @ModelAttribute Product product,
-            BindingResult bindingResult,
+            @Valid @ModelAttribute Product product, BindingResult bindingResult,
             @RequestParam("imageFile") MultipartFile multipartFile,
             @RequestParam Long categoryId,
             @RequestParam(required = false) List<Long> ingredientIds,
-            @RequestParam(required = false) List<Long> defaultIngredientIds,
-            HttpServletRequest request,
-            Model model
+            @RequestParam(required = false) List<Long> defaultIngredientIds, HttpServletRequest request, Model model
     ) throws IOException {
         log.debug("Attempting to save product: {}", product.getName());
 

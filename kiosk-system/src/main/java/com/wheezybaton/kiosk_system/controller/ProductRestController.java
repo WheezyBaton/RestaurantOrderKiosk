@@ -90,6 +90,17 @@ public class ProductRestController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/search")
+    @Operation(summary = "Wyszukaj produkty po nazwie", description = "Zwraca listę produktów pasujących do podanej nazwy.")
+    public ResponseEntity<List<ProductDto>> searchProducts(@RequestParam String query) {
+        log.debug("REST request to search products with query: '{}'", query);
+
+        List<Product> products = productService.searchProducts(query);
+
+        log.debug("Found {} products matching query: '{}'", products.size(), query);
+        return ResponseEntity.ok(products.stream().map(this::mapToDto).collect(Collectors.toList()));
+    }
+
     private ProductDto mapToDto(Product product) {
         log.trace("Mapping product entity (ID: {}) to DTO.", product.getId());
 
@@ -119,16 +130,5 @@ public class ProductRestController {
             dto.setIngredients(ingredientDtos);
         }
         return dto;
-    }
-
-    @GetMapping("/search")
-    @Operation(summary = "Wyszukaj produkty po nazwie", description = "Zwraca listę produktów pasujących do podanej nazwy.")
-    public ResponseEntity<List<ProductDto>> searchProducts(@RequestParam String query) {
-        log.debug("REST request to search products with query: '{}'", query);
-
-        List<Product> products = productService.searchProducts(query);
-
-        log.debug("Found {} products matching query: '{}'", products.size(), query);
-        return ResponseEntity.ok(products.stream().map(this::mapToDto).collect(Collectors.toList()));
     }
 }

@@ -10,13 +10,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowCallbackHandler;
+import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -63,20 +61,19 @@ class StatsServiceTest {
     }
 
     @Test
-    void getSalesStatsGroupedByMonth_ShouldAggregateData() {
-        doAnswer(invocation -> {
-            RowCallbackHandler handler = invocation.getArgument(1);
+    void getSalesStatsGroupedByMonth_ShouldAggregateData() throws Exception {
+        ResultSet rs = mock(ResultSet.class);
 
-            ResultSet rs = mock(ResultSet.class);
+        when(rs.next()).thenReturn(true, false);
+        when(rs.getString("month")).thenReturn("2023-10");
+        when(rs.getString("product_name")).thenReturn("Burger");
+        when(rs.getLong("total_quantity")).thenReturn(2L);
+        when(rs.getBigDecimal("total_revenue")).thenReturn(BigDecimal.valueOf(40.0));
 
-            when(rs.getTimestamp("created_at")).thenReturn(Timestamp.valueOf("2023-10-15 12:00:00"));
-            when(rs.getString("product_name")).thenReturn("Burger");
-            when(rs.getInt("quantity")).thenReturn(2);
-            when(rs.getBigDecimal("price_at_purchase")).thenReturn(BigDecimal.valueOf(20.00));
-
-            handler.processRow(rs);
-            return null;
-        }).when(jdbcTemplate).query(anyString(), any(RowCallbackHandler.class));
+        when(jdbcTemplate.query(anyString(), any(ResultSetExtractor.class))).thenAnswer(invocation -> {
+            ResultSetExtractor<Map<String, List<SalesStatDto>>> extractor = invocation.getArgument(1);
+            return extractor.extractData(rs);
+        });
 
         Map<String, List<SalesStatDto>> result = statsService.getSalesStatsGroupedByMonth();
 
@@ -85,7 +82,7 @@ class StatsServiceTest {
 
         SalesStatDto stat = result.get("2023-10").get(0);
         assertThat(stat.getProductName()).isEqualTo("Burger");
-        assertThat(stat.getTotalQuantity()).isEqualTo(2);
+        assertThat(stat.getTotalQuantity()).isEqualTo(2L);
         assertThat(stat.getTotalRevenue()).isEqualTo(BigDecimal.valueOf(40.0));
     }
 
@@ -167,18 +164,19 @@ class StatsServiceTest {
     }
 
     @Test
-    void getSalesStatsGroupedByMonth_ShouldAggregateDuplicateProductsInSameMonth() {
-        doAnswer(invocation -> {
-            RowCallbackHandler rch = invocation.getArgument(1);
+    void getSalesStatsGroupedByMonth_ShouldMapSqlAggregatedDataCorrectly() throws Exception {
+        ResultSet rs = mock(ResultSet.class);
 
-            ResultSet rs1 = mockResultRow("2023-11-01 10:00:00", "Burger", 1, new BigDecimal("10.00"));
-            rch.processRow(rs1);
+        when(rs.next()).thenReturn(true, false);
+        when(rs.getString("month")).thenReturn("2023-11");
+        when(rs.getString("product_name")).thenReturn("Burger");
+        when(rs.getLong("total_quantity")).thenReturn(3L);
+        when(rs.getBigDecimal("total_revenue")).thenReturn(new BigDecimal("30.00"));
 
-            ResultSet rs2 = mockResultRow("2023-11-02 12:00:00", "Burger", 2, new BigDecimal("10.00"));
-            rch.processRow(rs2);
-
-            return null;
-        }).when(jdbcTemplate).query(anyString(), any(RowCallbackHandler.class));
+        when(jdbcTemplate.query(anyString(), any(ResultSetExtractor.class))).thenAnswer(invocation -> {
+            ResultSetExtractor<Map<String, List<SalesStatDto>>> extractor = invocation.getArgument(1);
+            return extractor.extractData(rs);
+        });
 
         Map<String, List<SalesStatDto>> result = statsService.getSalesStatsGroupedByMonth();
 
@@ -186,21 +184,12 @@ class StatsServiceTest {
         assertTrue(result.containsKey("2023-11"));
 
         List<SalesStatDto> stats = result.get("2023-11");
-        assertEquals(1, stats.size(), "Powinien być tylko 1 wpis dla Burgera (zaggregoowany)");
+        assertEquals(1, stats.size());
 
         SalesStatDto burgerStat = stats.get(0);
         assertEquals("Burger", burgerStat.getProductName());
-        assertEquals(3L, burgerStat.getTotalQuantity(), "Ilość powinna być zsumowana (1 + 2)");
-        assertEquals(new BigDecimal("30.00"), burgerStat.getTotalRevenue(), "Przychód powinien być zsumowany (10 + 20)");
-    }
-
-    private ResultSet mockResultRow(String dateStr, String productName, int qty, BigDecimal price) throws SQLException {
-        ResultSet rs = mock(ResultSet.class);
-        when(rs.getTimestamp("created_at")).thenReturn(Timestamp.valueOf(dateStr));
-        when(rs.getString("product_name")).thenReturn(productName);
-        when(rs.getInt("quantity")).thenReturn(qty);
-        when(rs.getBigDecimal("price_at_purchase")).thenReturn(price);
-        return rs;
+        assertEquals(3L, burgerStat.getTotalQuantity());
+        assertEquals(new BigDecimal("30.00"), burgerStat.getTotalRevenue());
     }
 
     @Test
