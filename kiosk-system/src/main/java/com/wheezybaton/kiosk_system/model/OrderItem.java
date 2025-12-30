@@ -7,17 +7,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Data
+@Getter
+@Setter
+@ToString
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class OrderItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @ManyToOne
     @JoinColumn(name = "order_id")
+    @ToString.Exclude
     private Order order;
 
     @ManyToOne
@@ -31,5 +36,6 @@ public class OrderItem {
     private BigDecimal priceAtPurchase;
 
     @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL)
+    @ToString.Exclude
     private List<OrderItemModifier> modifiers = new ArrayList<>();
 }

@@ -5,19 +5,22 @@ import lombok.*;
 import java.math.BigDecimal;
 
 @Entity
-@Data
+@Getter
+@Setter
+@ToString
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ProductIngredient {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @ManyToOne
     @JoinColumn(name = "product_id")
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private Product product;
 
     @ManyToOne

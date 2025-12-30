@@ -6,13 +6,17 @@ import lombok.*;
 import java.util.List;
 
 @Entity
-@Data
+@Getter
+@Setter
+@ToString
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Category {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @Column(nullable = false, unique = true)
@@ -22,6 +26,5 @@ public class Category {
 
     @OneToMany(mappedBy = "category")
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private List<Product> products;
 }

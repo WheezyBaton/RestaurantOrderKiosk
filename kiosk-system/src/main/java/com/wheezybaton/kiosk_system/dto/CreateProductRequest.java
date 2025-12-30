@@ -4,11 +4,16 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 import java.util.List;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class CreateProductRequest {
 
     @NotBlank(message = "Nazwa produktu nie może być pusta")
@@ -30,6 +35,8 @@ public class CreateProductRequest {
     private List<IngredientConfig> ingredients;
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class IngredientConfig {
         private Long ingredientId;
         private boolean isDefault;

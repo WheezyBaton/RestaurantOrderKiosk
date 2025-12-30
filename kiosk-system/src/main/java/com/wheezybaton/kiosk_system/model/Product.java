@@ -10,13 +10,17 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @Entity
-@Data
+@Getter
+@Setter
+@ToString
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Product {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @NotBlank(message = "Nazwa jest wymagana")
@@ -39,12 +43,10 @@ public class Product {
     @ManyToOne
     @JoinColumn(name = "category_id")
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private Category category;
 
     @OneToMany(mappedBy = "product")
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private List<ProductIngredient> productIngredients;
 
     @Column(nullable = false)

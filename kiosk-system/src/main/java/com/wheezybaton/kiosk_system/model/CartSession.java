@@ -1,7 +1,9 @@
 package com.wheezybaton.kiosk_system.model;
 
 import com.wheezybaton.kiosk_system.dto.CartItemDto;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.annotation.SessionScope;
 
@@ -12,7 +14,9 @@ import java.util.UUID;
 
 @Component
 @SessionScope
-@Data
+@Getter
+@Setter
+@ToString
 public class CartSession {
     private static final BigDecimal PACKAGING_FEE = new BigDecimal("1.00");
 
